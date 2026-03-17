@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: school-archive-db
+    environment:
+      POSTGRES_USER: school_archive
+      POSTGRES_PASSWORD: school_archive_password
+      POSTGRES_DB: school_archive
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - school-archive-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: school-archive-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - school-archive-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  school-archive-network:
+    driver: bridge
