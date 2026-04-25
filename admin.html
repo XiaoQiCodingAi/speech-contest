@@ -71,29 +71,9 @@
         .step-line { width: 30px; height: 2px; background: #ddd; margin: 0 5px; }
         
         /* 辨一辨新样式 */
-        .discrimination-section { margin-bottom: 30px; }
-        .discrimination-section h4 { color: #333; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #eee; }
+        .discrimination-section { background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+        .discrimination-section h4 { color: #333; margin-bottom: 10px; }
         .discrimination-section .hint { font-size: 12px; color: #999; margin-bottom: 10px; }
-        
-        .discrimination-pool { background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
-        .discrimination-pool h5 { color: #666; margin-bottom: 10px; font-size: 14px; }
-        .pool-images { display: flex; flex-wrap: wrap; gap: 8px; }
-        .pool-image { width: 60px; height: 60px; border-radius: 8px; overflow: hidden; border: 2px solid #ddd; cursor: pointer; transition: all 0.2s; }
-        .pool-image:hover { border-color: #6ecbf5; }
-        .pool-image.selected { border-color: #ff6b6b; border-width: 3px; }
-        .pool-image img { width: 100%; height: 100%; object-fit: cover; }
-        
-        /* 组合配置 */
-        .group-config { background: #fff9e6; border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 2px solid #ffecb3; }
-        .group-config h5 { color: #ff9800; margin-bottom: 10px; }
-        .group-preview { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
-        .group-preview .big-img { width: 80px; height: 80px; border-radius: 10px; border: 3px solid #ff6b6b; overflow: hidden; }
-        .group-preview .big-img img { width: 100%; height: 100%; object-fit: cover; }
-        .group-preview .arrow { font-size: 24px; color: #999; }
-        .group-preview .small-imgs { display: flex; gap: 5px; }
-        .group-preview .small-img { width: 60px; height: 60px; border-radius: 8px; border: 2px solid #6ecbf5; overflow: hidden; }
-        .group-preview .small-img img { width: 100%; height: 100%; object-fit: cover; }
-        .group-preview .empty-slot { width: 60px; height: 60px; border: 2px dashed #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 20px; }
         
         .config-preview { background: #fff9e6; border-radius: 10px; padding: 15px; margin-top: 20px; }
         .config-preview h4 { color: #ff9800; margin-bottom: 10px; }
@@ -105,9 +85,6 @@
         .mt-20 { margin-top: 20px; }
         .mb-10 { margin-bottom: 10px; }
         .mb-20 { margin-bottom: 20px; }
-        .flex { display: flex; }
-        .gap-10 { gap: 10px; }
-        .flex-wrap { flex-wrap: wrap; }
     </style>
 </head>
 <body>
@@ -126,7 +103,7 @@
                 subtitle: '好吃的水果',
                 students: [],
                 recognition: { images: [], count: 3 },
-                discrimination: { bigImages: [], smallImages: [], groups: [], count: 3 },
+                discrimination: { bigImages: [], smallImages: [], count: 3 },
                 expression: { images: [], count: 3 }
             },
             {
@@ -135,7 +112,7 @@
                 subtitle: '我们的住房',
                 students: [],
                 recognition: { images: [], count: 3 },
-                discrimination: { bigImages: [], smallImages: [], groups: [], count: 3 },
+                discrimination: { bigImages: [], smallImages: [], count: 3 },
                 expression: { images: [], count: 3 }
             }
         ];
@@ -144,12 +121,6 @@
             const [grades, setGrades] = useState([]);
             const [selectedGrade, setSelectedGrade] = useState(null);
             const [currentTab, setCurrentTab] = useState('basic');
-            
-            // 辨一辨临时选择状态
-            const [discriminationState, setDiscriminationState] = useState({
-                selectedBig: null,
-                selectedSmalls: []
-            });
             
             useEffect(() => {
                 const saved = localStorage.getItem(STORAGE_KEY);
@@ -169,7 +140,6 @@
             const editGrade = (grade) => {
                 setSelectedGrade(grade);
                 setCurrentTab('basic');
-                setDiscriminationState({ selectedBig: null, selectedSmalls: [] });
             };
             
             const updateGrade = (field, value) => {
@@ -193,7 +163,7 @@
                 updateGrade('students', newStudents);
             };
             
-            // 上传图片通用
+            // 上传图片
             const handleImageUpload = (e, field) => {
                 const files = Array.from(e.target.files);
                 const newImages = files.map(file => ({
@@ -225,58 +195,6 @@
                     const currentImages = selectedGrade.discrimination?.smallImages || [];
                     updateGrade('discrimination', { ...selectedGrade.discrimination, smallImages: currentImages.filter(img => img.id !== imageId) });
                 }
-            };
-            
-            // 辨一辨选择
-            const toggleBigImage = (img) => {
-                setDiscriminationState(prev => ({
-                    ...prev,
-                    selectedBig: prev.selectedBig?.id === img.id ? null : img
-                }));
-            };
-            
-            const toggleSmallImage = (img) => {
-                setDiscriminationState(prev => {
-                    const isSelected = prev.selectedSmalls.some(s => s.id === img.id);
-                    if (isSelected) {
-                        return { ...prev, selectedSmalls: prev.selectedSmalls.filter(s => s.id !== img.id) };
-                    } else if (prev.selectedSmalls.length < 3) {
-                        return { ...prev, selectedSmalls: [...prev.selectedSmalls, img] };
-                    }
-                    return prev;
-                });
-            };
-            
-            // 添加辨一辨组
-            const addDiscriminationGroup = () => {
-                if (!discriminationState.selectedBig) {
-                    alert('请先选择1张题目图');
-                    return;
-                }
-                if (discriminationState.selectedSmalls.length !== 3) {
-                    alert('请先选择3张选项图');
-                    return;
-                }
-                const groups = selectedGrade.discrimination?.groups || [];
-                const newGroup = {
-                    id: Date.now().toString(),
-                    bigImage: discriminationState.selectedBig,
-                    smallImages: [...discriminationState.selectedSmalls]
-                };
-                updateGrade('discrimination', {
-                    ...selectedGrade.discrimination,
-                    groups: [...groups, newGroup]
-                });
-                setDiscriminationState({ selectedBig: null, selectedSmalls: [] });
-            };
-            
-            // 删除辨一辨组
-            const removeDiscriminationGroup = (groupId) => {
-                const groups = selectedGrade.discrimination?.groups || [];
-                updateGrade('discrimination', {
-                    ...selectedGrade.discrimination,
-                    groups: groups.filter(g => g.id !== groupId)
-                });
             };
             
             // 渲染年段列表
@@ -411,11 +329,11 @@
                             </div>
                         )}
                         
-                        {/* 辨一辨 - 新设计：N张大图 + 3N张小图 + 组合配置 */}
+                        {/* 辨一辨 - 简化：只需要上传大小图，系统自动随机组合 */}
                         {currentTab === 'discrimination' && (
                             <div>
                                 <div className="form-group">
-                                    <label className="form-label">题目数量（组数）</label>
+                                    <label className="form-label">题目数量</label>
                                     <input 
                                         type="number" 
                                         className="form-input"
@@ -426,13 +344,11 @@
                                     />
                                 </div>
                                 
-                                {/* 第一步：上传大图 */}
                                 <div className="discrimination-section">
-                                    <h4>📷 第一步：上传题目图</h4>
-                                    <p className="hint">上传 N 张大图作为"题目图"，每组需要1张</p>
+                                    <h4>📷 题目图（大图）</h4>
+                                    <p className="hint">上传所有大图，系统随机选择作为题目</p>
                                     <div className="upload-area" onClick={() => document.getElementById('big-upload').click()}>
                                         <p>点击上传题目图（可多选）</p>
-                                        <p style={{fontSize: '12px', color: '#999'}}>这些图片会作为"题目"展示给学生</p>
                                     </div>
                                     <input id="big-upload" type="file" accept="image/*" multiple style={{display: 'none'}} onChange={(e) => handleImageUpload(e, 'bigImages')} />
                                     <div className="image-grid">
@@ -445,13 +361,11 @@
                                     </div>
                                 </div>
                                 
-                                {/* 第二步：上传小图 */}
                                 <div className="discrimination-section">
-                                    <h4>📷 第二步：上传选项图</h4>
-                                    <p className="hint">上传 3N 张小图作为"选项图"，每组需要3张</p>
+                                    <h4>📷 选项图（小图）</h4>
+                                    <p className="hint">上传所有小图，系统随机选择1个正确+2个错误选项</p>
                                     <div className="upload-area" onClick={() => document.getElementById('small-upload').click()}>
                                         <p>点击上传选项图（可多选）</p>
-                                        <p style={{fontSize: '12px', color: '#999'}}>这些图片会作为"选项"让学生选择</p>
                                     </div>
                                     <input id="small-upload" type="file" accept="image/*" multiple style={{display: 'none'}} onChange={(e) => handleImageUpload(e, 'smallImages')} />
                                     <div className="image-grid">
@@ -464,105 +378,15 @@
                                     </div>
                                 </div>
                                 
-                                {/* 第三步：组合配置 */}
-                                <div className="discrimination-section">
-                                    <h4>🔗 第三步：组合配置</h4>
-                                    <p className="hint">选择1张题目图 + 3张选项图，组成一组</p>
-                                    
-                                    <div className="discrimination-pool mb-20">
-                                        <h5>可选题目图（点击选择1张）</h5>
-                                        <div className="pool-images">
-                                            {(selectedGrade?.discrimination?.bigImages || []).map(img => (
-                                                <div 
-                                                    key={img.id}
-                                                    className={`pool-image ${discriminationState.selectedBig?.id === img.id ? 'selected' : ''}`}
-                                                    onClick={() => toggleBigImage(img)}
-                                                >
-                                                    <img src={img.url} alt={img.name} />
-                                                </div>
-                                            ))}
-                                            {(selectedGrade?.discrimination?.bigImages || []).length === 0 && (
-                                                <span style={{color: '#999', fontSize: '14px'}}>暂无题目图，请先上传</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="discrimination-pool mb-20">
-                                        <h5>可选选项图（点击选择3张）</h5>
-                                        <div className="pool-images">
-                                            {(selectedGrade?.discrimination?.smallImages || []).map(img => (
-                                                <div 
-                                                    key={img.id}
-                                                    className={`pool-image ${discriminationState.selectedSmalls.some(s => s.id === img.id) ? 'selected' : ''}`}
-                                                    onClick={() => toggleSmallImage(img)}
-                                                >
-                                                    <img src={img.url} alt={img.name} />
-                                                </div>
-                                            ))}
-                                            {(selectedGrade?.discrimination?.smallImages || []).length === 0 && (
-                                                <span style={{color: '#999', fontSize: '14px'}}>暂无选项图，请先上传</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    {/* 当前选择预览 */}
-                                    <div className="group-config">
-                                        <h5>当前选择预览</h5>
-                                        <div className="group-preview">
-                                            <div className="big-img">
-                                                {discriminationState.selectedBig ? 
-                                                    <img src={discriminationState.selectedBig.url} alt="题目" /> : 
-                                                    <div style={{width: '100%', height: '100%', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc'}}>?</div>
-                                                }
-                                            </div>
-                                            <div className="arrow">→</div>
-                                            <div className="small-imgs">
-                                                {[0, 1, 2].map(i => (
-                                                    discriminationState.selectedSmalls[i] ?
-                                                        <div key={i} className="small-img">
-                                                            <img src={discriminationState.selectedSmalls[i].url} alt={`选项${i+1}`} />
-                                                        </div> :
-                                                        <div key={i} className="empty-slot">?</div>
-                                                ))}
-                                            </div>
-                                            <button 
-                                                className="btn btn-success" 
-                                                onClick={addDiscriminationGroup}
-                                                disabled={!discriminationState.selectedBig || discriminationState.selectedSmalls.length !== 3}
-                                            >
-                                                添加这组
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* 已添加的组 */}
-                                    <div className="mt-20">
-                                        <h5>已配置的组（{selectedGrade?.discrimination?.groups?.length || 0} 组）</h5>
-                                        {(selectedGrade?.discrimination?.groups || []).map((group, index) => (
-                                            <div key={group.id} className="group-config" style={{marginTop: '10px'}}>
-                                                <div className="flex gap-10" style={{justifyContent: 'space-between', alignItems: 'center'}}>
-                                                    <span style={{color: '#ff9800', fontWeight: 'bold'}}>第 {index + 1} 组</span>
-                                                    <button className="btn btn-danger btn-small" onClick={() => removeDiscriminationGroup(group.id)}>删除</button>
-                                                </div>
-                                                <div className="group-preview" style={{marginTop: '10px'}}>
-                                                    <div className="big-img">
-                                                        <img src={group.bigImage.url} alt="题目" />
-                                                    </div>
-                                                    <div className="arrow">→</div>
-                                                    <div className="small-imgs">
-                                                        {group.smallImages.map((img, i) => (
-                                                            <div key={i} className="small-img">
-                                                                <img src={img.url} alt={`选项${i+1}`} />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {(selectedGrade?.discrimination?.groups || []).length === 0 && (
-                                            <div className="empty-state">暂无配置的组，请添加</div>
-                                        )}
-                                    </div>
+                                <div className="mt-20" style={{background: '#e8f5e9', padding: '15px', borderRadius: '10px'}}>
+                                    <h4 style={{color: '#2e7d32', marginBottom: '10px'}}>💡 自动组合说明</h4>
+                                    <p style={{fontSize: '14px', color: '#555'}}>
+                                        每道题由系统随机生成：<br/>
+                                        · 从大图中随机选1张作为题目<br/>
+                                        · 从小图中随机选1张作为正确答案<br/>
+                                        · 再从剩余小图中随机选2张作为错误选项<br/>
+                                        · 3个选项打乱顺序显示给学生
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -669,16 +493,32 @@
                             <span>{selectedGrade?.discrimination?.smallImages?.length || 0} 张</span>
                         </div>
                         <div className="config-item">
-                            <span>辨一辨已配置组</span>
-                            <span>{selectedGrade?.discrimination?.groups?.length || 0} 组</span>
-                        </div>
-                        <div className="config-item">
                             <span>说一说图片</span>
                             <span>{selectedGrade?.expression?.images?.length || 0} 张</span>
                         </div>
                         <div className="config-item">
                             <span>学生人数</span>
                             <span>{selectedGrade?.students?.length || 0} 人</span>
+                        </div>
+                    </div>
+                </div>
+            );
+            
+            return (
+                <div className="container">
+                    <h1 className="page-title">⚙️ 后台管理</h1>
+                    
+                    {selectedGrade ? renderEditPage() : renderGradeList()}
+                    
+                    <div className="card mt-20">
+                        <div className="text-center">
+                            <p style={{color: '#666', marginBottom: '10px'}}>使用说明：</p>
+                            <p style={{color: '#999', fontSize: '14px'}}>
+                                1. 选择年段进行编辑<br/>
+                                2. 上传各环节图片<br/>
+                                3. 添加学生名单<br/>
+                                4. 保存后用 index.html 开始比赛
+                            </p>
                         </div>
                     </div>
                 </div>

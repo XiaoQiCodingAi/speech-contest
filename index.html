@@ -270,6 +270,7 @@
             // 当前环节图片
             const [currentImages, setCurrentImages] = useState([]);
             const [discriminationOptions, setDiscriminationOptions] = useState([]);
+            const [correctOptionIndex, setCorrectOptionIndex] = useState(null); // 辨一辨正确答案索引
             const [selectedOption, setSelectedOption] = useState(null);
             
             const rollInterval = useRef(null);
@@ -332,6 +333,7 @@
                 setCurrentScores({ r: null, d: null, e: null });
                 setCurrentRound(0);
                 setSelectedOption(null);
+                setCorrectOptionIndex(null);
                 prepareRound();
                 setScreen('game');
             };
@@ -349,19 +351,43 @@
                     }
                     const randomIndex = Math.floor(Math.random() * imgs.length);
                     setCurrentImages([imgs[randomIndex]]);
+                    setDiscriminationOptions([]);
+                    setCorrectOptionIndex(null);
+
                 } else if (currentRound === 1) {
-                    // 辨一辨
-                    const groups = selectedGrade.discrimination?.groups || [];
-                    if (groups.length === 0) {
-                        alert('请先在后台配置辨一辨组合');
+                    // 辨一辨：随机生成
+                    const bigImgs = selectedGrade.discrimination?.bigImages || [];
+                    const smallImgs = selectedGrade.discrimination?.smallImages || [];
+                    
+                    if (bigImgs.length === 0 || smallImgs.length < 3) {
+                        alert('请先在后台添加足够的辨一辨图片（至少1张大图+3张小图）');
                         return;
                     }
-                    const randomIndex = Math.floor(Math.random() * groups.length);
-                    const group = groups[randomIndex];
-                    setCurrentImages([group.bigImage.url]);
-                    // 打乱选项顺序
-                    const shuffled = [...group.smallImages].sort(() => Math.random() - 0.5);
-                    setDiscriminationOptions(shuffled.map(img => img.url));
+                    
+                    // 随机选1张大图作为题目
+                    const questionIndex = Math.floor(Math.random() * bigImgs.length);
+                    const questionImg = bigImgs[questionIndex];
+                    setCurrentImages([questionImg]);
+                    
+                    // 随机选1张小图作为正确答案
+                    const correctIndex = Math.floor(Math.random() * smallImgs.length);
+                    const correctImg = smallImgs[correctIndex];
+                    
+                    // 从剩余小图中随机选2个作为错误选项
+                    const remainingSmall = smallImgs.filter((_, i) => i !== correctIndex);
+                    const shuffledRemaining = remainingSmall.sort(() => Math.random() - 0.5);
+                    const wrongImgs = shuffledRemaining.slice(0, 2);
+                    
+                    // 3个选项打乱顺序，记录正确答案位置
+                    const allOptions = [correctImg, ...wrongImgs];
+                    const correctPosition = 0; // 正确答案在数组第一个位置
+                    // 打乱顺序
+                    const shuffledOptions = [...allOptions].sort(() => Math.random() - 0.5);
+                    // 找出正确答案打乱后的位置
+                    const newCorrectIndex = shuffledOptions.findIndex(opt => opt === correctImg);
+                    setDiscriminationOptions(shuffledOptions);
+                    setCorrectOptionIndex(newCorrectIndex);
+                    
                 } else {
                     // 说一说
                     const imgs = selectedGrade.expression?.images || [];
@@ -371,6 +397,8 @@
                     }
                     const randomIndex = Math.floor(Math.random() * imgs.length);
                     setCurrentImages([imgs[randomIndex]]);
+                    setDiscriminationOptions([]);
+                    setCorrectOptionIndex(null);
                 }
                 setSelectedOption(null);
             };
@@ -380,8 +408,7 @@
                 if (selectedOption !== null) return; // 已选择
                 
                 setSelectedOption(index);
-                const questionImage = currentImages[0];
-                const isCorrect = option === questionImage;
+                const isCorrect = index === correctOptionIndex;
                 
                 const newScores = { ...currentScores, d: isCorrect ? 3 : 0 };
                 setCurrentScores(newScores);
