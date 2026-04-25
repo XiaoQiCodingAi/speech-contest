@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>认知大比拼</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #6ecbf5, #c2e9fb); min-height: 100vh; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #ff6b6b; font-size: 2.5em; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+        .screen { display: none; }
+        .active { display: block; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; transition: border-color 0.3s; }
+        input:focus, select:focus { outline: none; border-color: #6ecbf5; }
+        .btn { background: linear-gradient(45deg, #ff6b6b, #ffa500); color: white; border: none; padding: 12px 24px; border-radius: 25px; font-size: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin: 10px 5px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4); }
+        .btn-secondary { background: linear-gradient(45deg, #6ecbf5, #c2e9fb); }
+        .btn-score { background: linear-gradient(45deg, #4CAF50, #8BC34A); padding: 8px 16px; margin: 5px; }
+        .image-preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .preview-item { position: relative; width: 100px; height: 100px; border: 2px solid #ddd; border-radius: 10px; overflow: hidden; }
+        .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .remove-btn { position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; }
+        .game-area { text-align: center; padding: 20px; }
+        .student-info { background: linear-gradient(45deg, #6ecbf5, #c2e9fb); color: white; padding: 15px; border-radius: 15px; margin-bottom: 20px; font-size: 18px; }
+        .round-info { font-size: 18px; margin-bottom: 20px; color: #555; }
+        .image-container { width: 400px; height: 400px; margin: 20px auto; border: 3px solid #6ecbf5; border-radius: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; }
+        .image-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .rolling { animation: roll 0.2s ease-in-out infinite alternate; }
+        @keyframes roll { 0% { transform: scale(0.8); } 100% { transform: scale(1.2); } }
+        .result-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin: 5px 0; background: #f8f9fa; }
+        .result-item.correct { background: #d4edda; border-color: #c3e6cb; }
+        .result-item.wrong { background: #f8d7da; border-color: #f5c6cb; }
+        .feedback { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 15px; color: white; font-size: 24px; z-index: 1000; opacity: 0; transition: opacity 0.3s; }
+        .feedback.show { opacity: 1; }
+        .feedback.correct { background: linear-gradient(45deg, #28a745, #20c997); }
+        .feedback.wrong { background: linear-gradient(45deg, #dc3545, #fd7e14); }
+        .stats-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background-color 0.2s; }
+        .stats-item:hover { background-color: #f8f9fa; }
+        .stats-item:last-child { border-bottom: none; }
+        @media (max-width: 600px) { .container { padding: 15px; } h1 { font-size: 2em; } .image-container { width: 300px; height: 300px; } .btn { padding: 10px 15px; font-size: 14px; } .btn-score { padding: 6px 12px; font-size: 12px; } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        function App() {
+            const [currentScreen, setCurrentScreen] = useState('menu');
+            const [images, setImages] = useState([]);
+            const [totalQuestions, setTotalQuestions] = useState(5);
+            const [studentName, setStudentName] = useState('');
+            const [currentRound, setCurrentRound] = useState(0);
+            const [currentImage, setCurrentImage] = useState(null);
+            const [usedImages, setUsedImages] = useState([]);
+            const [results, setResults] = useState([]);
+            const [allResults, setAllResults] = useState([]);
+            const [showFeedback, setShowFeedback] = useState({show: false, correct: false, message: ''});
+            const [rolling, setRolling] = useState(false);
+            const [showNextButton, setShowNextButton] = useState(false);
+            const rollingInterval = useRef(null);
+            const handleImageUpload = (e) => { const files = Array.from(e.target.files); const newImages = files.map(file => ({ id: Date.now() + Math.random(), url: URL.createObjectURL(file), file: file })); setImages(prev => [...prev, ...newImages]); };
+            const removeImage = (id) => { setImages(prev => prev.filter(img => img.id !== id)); };
+            const startGame = () => { if (images.length === 0) { alert('请先上传图片！'); return; } if (studentName.trim() === '') { alert('请输入学生姓名！'); return; } if (totalQuestions > images.length) { alert('题目数量不能超过图片数量！'); return; } setCurrentScreen('game'); setCurrentRound(0); setUsedImages([]); setResults([]); setShowNextButton(false); };
+            const startRound = () => { if (currentRound >= totalQuestions) { endGame(); return; } setRolling(true); setShowNextButton(false); const shuffledImages = [...images].sort(() => Math.random() - 0.5); let counter = 0; const maxRolls = 20; rollingInterval.current = setInterval(() => { setCurrentImage(shuffledImages[counter % shuffledImages.length]); counter++; if (counter >= maxRolls) { clearInterval(rollingInterval.current); const availableImages = images.filter(img => !usedImages.includes(img.id)); if (availableImages.length === 0) { endGame(); return; } const randomIndex = Math.floor(Math.random() * availableImages.length); const selectedImage = availableImages[randomIndex]; setCurrentImage(selectedImage); setUsedImages(prev => [...prev, selectedImage.id]); setRolling(false); } }, 100); };
+            const endGame = () => { if (rollingInterval.current) { clearInterval(rollingInterval.current); } const newResult = { studentName, results, totalScore: results.reduce((sum, r) => sum + r.score, 0), totalQuestions, details: results }; setAllResults(prev => [...prev, newResult]); setCurrentScreen('results'); };
+            const showFeedbackMessage = (message, isCorrect = false) => { setShowFeedback({show: true, correct: isCorrect, message}); setTimeout(() => { setShowFeedback({show: false, correct: false, message: ''}); }, 2000); };
+            const handleAnswer = (score) => { if (!currentImage) return; const result = { image: currentImage.url, score, round: currentRound + 1, imageId: currentImage.id }; setResults(prev => [...prev, result]); setCurrentRound(prev => prev + 1); const scoreText = {1: '1分', 2: '2分', 3: '3分', 4: '4分'}; showFeedbackMessage(`获得${scoreText[score]}！`, true); setCurrentImage(null); setShowNextButton(true); };
+            const restartGame = () => { setCurrentScreen('menu'); setStudentName(''); };
+            const viewStats = () => { setCurrentScreen('stats'); };
+            const viewStudentResults = (studentResult) => { setResults(studentResult.details); setCurrentScreen('results'); };
+            const clearStats = () => { setAllResults([]); };
+            useEffect(() => { return () => { if (rollingInterval.current) { clearInterval(rollingInterval.current); } }; }, []);
+            return (
+                <div className="container">
+                    <h1>认知大比拼</h1>
+                    {showFeedback.show && (<div className={`feedback ${showFeedback.correct ? 'correct' : 'wrong'} show`}>{showFeedback.message}</div>)}
+                    <div className={`screen ${currentScreen === 'menu' ? 'active' : ''}`}>
+                        <div className="form-group"><label>上传生活用品图片：</label><input type="file" accept="image/*" multiple onChange={handleImageUpload} /></div>
+                        <div className="image-preview">{images.map(img => (<div key={img.id} className="preview-item"><img src={img.url} alt="预览" /><button className="remove-btn" onClick={() => removeImage(img.id)}>×</button></div>))}</div>
+                        <div className="form-group"><label>设置答题数量：</label><select value={totalQuestions} onChange={(e) => setTotalQuestions(parseInt(e.target.value))}>{[3,4,5,6,7,8,9,10].map(num => (<option key={num} value={num}>{num}题</option>))}</select></div>
+                        <div className="form-group"><label>学生姓名：</label><input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="请输入学生姓名" /></div>
+                        <button className="btn" onClick={startGame}>开始游戏</button>
+                        <button className="btn btn-secondary" onClick={viewStats}>结果统计</button>
+                    </div>
+                    <div className={`screen ${currentScreen === 'game' ? 'active' : ''}`}>
+                        <div className="student-info">学生：{studentName}</div>
+                        <div className="round-info">第 {currentRound + 1} 轮，共 {totalQuestions} 轮</div>
+                        <div className="game-area">
+                            {!showNextButton && (<button className="btn" onClick={startRound} disabled={rolling}>{rolling ? '滚动中...' : '开始'}</button>)}
+                            {showNextButton && currentRound < totalQuestions && (<button className="btn" onClick={startRound}>下一题</button>)}
+                            {currentImage && (<div className={`image-container ${rolling ? 'rolling' : ''}`}><img src={currentImage.url} alt="生活用品" /></div>)}
+                            {currentImage && !rolling && (<div><p>请说出这个生活用品的名称！</p><p>请选择得分：</p><button className="btn btn-score" onClick={() => handleAnswer(4)}>4分 - 完全正确</button><button className="btn btn-score" onClick={() => handleAnswer(3)}>3分 - 基本正确</button><button className="btn btn-score" onClick={() => handleAnswer(2)}>2分 - 部分正确</button><button className="btn btn-score" onClick={() => handleAnswer(1)}>1分 - 需要鼓励</button></div>)}
+                        </div>
+                    </div>
+                    <div className={`screen ${currentScreen === 'results' ? 'active' : ''}`}>
+                        <h2>答题结果</h2>
+                        <div className="student-info">学生：{studentName}，总分：{results.reduce((sum, r) => sum + r.score, 0)}/{totalQuestions * 4}</div>
+                        <div>{results.map((result, index) => (<div key={index} className="result-item"><div><img src={result.image} alt="题目" style={{width: '50px', height: '50px', objectFit: 'cover'}} /></div><div>第 {result.round} 题</div><div>得分：{result.score}分</div></div>))}</div>
+                        <button className="btn" onClick={restartGame}>重新开始</button>
+                        <button className="btn btn-secondary" onClick={viewStats}>查看统计</button>
+                    </div>
+                    <div className={`screen ${currentScreen === 'stats' ? 'active' : ''}`}>
+                        <h2>结果统计</h2>
+                        {allResults.length === 0 ? (<p>暂无统计信息</p>) : (<div>{allResults.map((result, index) => (<div key={index} className="stats-item" onClick={() => viewStudentResults(result)}><span>{result.studentName}</span><span>{result.totalScore}/{result.totalQuestions * 4} ({Math.round(result.totalScore/(result.totalQuestions*4)*100)}%)</span></div>))}</div>)}
+                        <button className="btn" onClick={restartGame}>返回菜单</button>
+                        {allResults.length > 0 && (<button className="btn btn-secondary" onClick={clearStats}>清空统计</button>)}
+                    </div>
+                </div>
+            );
+        }
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

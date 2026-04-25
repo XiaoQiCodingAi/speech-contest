@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口语交际比赛 - 后台管理</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #6ecbf5, #c2e9fb); min-height: 100vh; }
+        
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        
+        .page-title { text-align: center; color: #ff6b6b; font-size: 2.2em; margin-bottom: 30px; }
+        
+        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #eee; }
+        .card-title { font-size: 1.3em; color: #333; }
+        
+        .btn { background: linear-gradient(45deg, #ff6b6b, #ffa500); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; cursor: pointer; transition: all 0.2s; margin: 3px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 3px 10px rgba(255, 107, 107, 0.3); }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        .btn-secondary { background: linear-gradient(45deg, #6ecbf5, #4a9fd4); }
+        .btn-success { background: linear-gradient(45deg, #28a745, #20c997); }
+        .btn-danger { background: linear-gradient(45deg, #dc3545, #ff6b6b); }
+        .btn-warning { background: linear-gradient(45deg, #ffc107, #ff9800); }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        .form-input { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 10px; font-size: 14px; }
+        .form-input:focus { outline: none; border-color: #6ecbf5; }
+        
+        /* 图片上传 */
+        .upload-area { border: 2px dashed #ddd; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .upload-area:hover { border-color: #6ecbf5; background: #f0f9ff; }
+        
+        /* 图片预览网格 */
+        .image-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+        .image-item { position: relative; width: 100px; height: 100px; border-radius: 10px; overflow: hidden; border: 2px solid #eee; }
+        .image-item img { width: 100%; height: 100%; object-fit: cover; }
+        .image-item .remove-btn { position: absolute; top: 3px; right: 3px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 12px; }
+        
+        /* 辨一辨组 */
+        .discrimination-group { background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+        .discrimination-group h4 { margin-bottom: 10px; color: #666; }
+        .discrimination-images { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .discrimination-images .question-img { width: 100px; height: 100px; border: 3px solid #ff6b6b; border-radius: 10px; overflow: hidden; }
+        .discrimination-images .option-imgs { display: flex; gap: 5px; }
+        .discrimination-images .option-img { width: 70px; height: 70px; border: 2px solid #6ecbf5; border-radius: 8px; overflow: hidden; }
+        .discrimination-images img { width: 100%; height: 100%; object-fit: cover; }
+        .discrimination-images .arrow { font-size: 24px; color: #999; }
+        
+        /* 学生列表 */
+        .student-list { display: flex; flex-wrap: wrap; gap: 10px; }
+        .student-tag { background: linear-gradient(45deg, #6ecbf5, #c2e9fb); padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; }
+        .student-tag .name { color: white; font-weight: bold; }
+        .student-tag .delete { background: rgba(255,255,255,0.3); border: none; color: white; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; }
+        
+        /* 年段卡片 */
+        .grade-card { background: #f8f9fa; border-radius: 15px; padding: 20px; margin-bottom: 15px; }
+        .grade-card h3 { color: #ff6b6b; margin-bottom: 15px; }
+        .grade-card .subtitle { color: #666; font-size: 14px; margin-bottom: 15px; }
+        
+        /* Tab 导航 */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; border-radius: 10px; cursor: pointer; background: #ddd; color: #666; transition: all 0.2s; }
+        .tab.active { background: linear-gradient(45deg, #ff6b6b, #ffa500); color: white; }
+        .tab:hover:not(.active) { background: #ccc; }
+        
+        /* 步骤条 */
+        .step-bar { display: flex; justify-content: center; margin-bottom: 30px; }
+        .step { display: flex; align-items: center; }
+        .step-num { width: 30px; height: 30px; border-radius: 50%; background: #ddd; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .step.active .step-num { background: #ff6b6b; color: white; }
+        .step.done .step-num { background: #28a745; color: white; }
+        .step-label { margin-left: 8px; color: #666; }
+        .step.active .step-label { color: #ff6b6b; font-weight: bold; }
+        .step-line { width: 50px; height: 2px; background: #ddd; margin: 0 10px; }
+        
+        .empty-state { text-align: center; padding: 30px; color: #999; }
+        .text-center { text-align: center; }
+        .mt-10 { margin-top: 10px; }
+        .mt-20 { margin-top: 20px; }
+        .mb-10 { margin-bottom: 10px; }
+        
+        /* 配置预览 */
+        .config-preview { background: #fff9e6; border-radius: 10px; padding: 15px; margin-top: 20px; }
+        .config-preview h4 { color: #ff9800; margin-bottom: 10px; }
+        .config-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        const STORAGE_KEY = 'speech_contest_grades';
+        
+        // 默认年段数据
+        const defaultGrades = [
+            {
+                id: '1',
+                name: '中低年段',
+                subtitle: '好吃的水果',
+                students: [],
+                recognition: { images: [], count: 3 },
+                discrimination: { groups: [], count: 3 },
+                expression: { images: [], count: 3 }
+            },
+            {
+                id: '2',
+                name: '高年段',
+                subtitle: '我们的住房',
+                students: [],
+                recognition: { images: [], count: 3 },
+                discrimination: { groups: [], count: 3 },
+                expression: { images: [], count: 3 }
+            }
+        ];
+        
+        function App() {
+            const [grades, setGrades] = useState([]);
+            const [selectedGrade, setSelectedGrade] = useState(null);
+            const [currentTab, setCurrentTab] = useState('basic'); // basic, recognition, discrimination, expression, students
+            
+            useEffect(() => {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    setGrades(JSON.parse(saved));
+                } else {
+                    setGrades(defaultGrades);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultGrades));
+                }
+            }, []);
+            
+            const saveGrades = (newGrades) => {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(newGrades));
+                setGrades(newGrades);
+            };
+            
+            // 选择年段编辑
+            const editGrade = (grade) => {
+                setSelectedGrade(grade);
+                setCurrentTab('basic');
+            };
+            
+            // 更新年段
+            const updateGrade = (field, value) => {
+                const newGrades = grades.map(g => 
+                    g.id === selectedGrade.id ? { ...g, [field]: value } : g
+                );
+                saveGrades(newGrades);
+                setSelectedGrade({ ...selectedGrade, [field]: value });
+            };
+            
+            // 添加学生
+            const addStudent = (name) => {
+                if (!name.trim()) return;
+                const newStudent = { id: Date.now().toString(), name: name.trim() };
+                const newStudents = [...(selectedGrade.students || []), newStudent];
+                updateGrade('students', newStudents);
+            };
+            
+            // 删除学生
+            const removeStudent = (id) => {
+                const newStudents = (selectedGrade.students || []).filter(s => s.id !== id);
+                updateGrade('students', newStudents);
+            };
+            
+            // 上传图片通用
+            const handleImageUpload = (e, field) => {
+                const files = Array.from(e.target.files);
+                const newImages = files.map(file => ({
+                    id: Date.now() + Math.random(),
+                    url: URL.createObjectURL(file),
+                    name: file.name
+                }));
+                const currentImages = selectedGrade[field]?.images || [];
+                updateGrade(field, { ...selectedGrade[field], images: [...currentImages, ...newImages] });
+            };
+            
+            // 删除图片
+            const removeImage = (field, imageId) => {
+                const currentImages = selectedGrade[field]?.images || [];
+                updateGrade(field, { ...selectedGrade[field], images: currentImages.filter(img => img.id !== imageId) });
+            };
+            
+            // 添加辨一辨组
+            const addDiscriminationGroup = () => {
+                const groups = selectedGrade.discrimination?.groups || [];
+                updateGrade('discrimination', { 
+                    ...selectedGrade.discrimination, 
+                    groups: [...groups, { id: Date.now(), question: null, options: [] }] 
+                });
+            };
+            
+            // 上传辨一辨题目图片
+            const handleQuestionUpload = (e, groupId) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const url = URL.createObjectURL(file);
+                const groups = selectedGrade.discrimination?.groups || [];
+                updateGrade('discrimination', {
+                    ...selectedGrade.discrimination,
+                    groups: groups.map(g => g.id === groupId ? { ...g, question: url } : g)
+                });
+            };
+            
+            // 上传辨一辨选项图片（4张）
+            const handleOptionUpload = (e, groupId, optionIndex) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const url = URL.createObjectURL(file);
+                const groups = selectedGrade.discrimination?.groups || [];
+                updateGrade('discrimination', {
+                    ...selectedGrade.discrimination,
+                    groups: groups.map(g => {
+                        if (g.id !== groupId) return g;
+                        const newOptions = [...(g.options || [])];
+                        newOptions[optionIndex] = url;
+                        return { ...g, options: newOptions };
+                    })
+                });
+            };
+            
+            // 删除辨一辨组
+            const removeDiscriminationGroup = (groupId) => {
+                const groups = selectedGrade.discrimination?.groups || [];
+                updateGrade('discrimination', {
+                    ...selectedGrade.discrimination,
+                    groups: groups.filter(g => g.id !== groupId)
+                });
+            };
+            
+            // 渲染年段列表
+            const renderGradeList = () => (
+                <div className="card">
+                    <div className="card-header">
+                        <span className="card-title">📚 年段配置</span>
+                    </div>
+                    
+                    {grades.length === 0 ? (
+                        <div className="empty-state">暂无年段，请刷新页面初始化</div>
+                    ) : (
+                        grades.map(grade => (
+                            <div key={grade.id} className="grade-card">
+                                <h3>{grade.name}</h3>
+                                <p className="subtitle">{grade.subtitle}</p>
+                                <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                                    <button className="btn" onClick={() => editGrade(grade)}>编辑</button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            );
+            
+            // 渲染编辑页面
+            const renderEditPage = () => (
+                <div>
+                    <div className="step-bar">
+                        <div className="step active">
+                            <div className="step-num">1</div>
+                            <span className="step-label">基础</span>
+                        </div>
+                        <div className="step-line"></div>
+                        <div className="step">
+                            <div className="step-num">2</div>
+                            <span className="step-label">认一认</span>
+                        </div>
+                        <div className="step-line"></div>
+                        <div className="step">
+                            <div className="step-num">3</div>
+                            <span className="step-label">辨一辨</span>
+                        </div>
+                        <div className="step-line"></div>
+                        <div className="step">
+                            <div className="step-num">4</div>
+                            <span className="step-label">说一说</span>
+                        </div>
+                        <div className="step-line"></div>
+                        <div className="step">
+                            <div className="step-num">5</div>
+                            <span className="step-label">学生</span>
+                        </div>
+                    </div>
+                    
+                    <div className="card">
+                        <div className="card-header">
+                            <span className="card-title">
+                                编辑年段：{selectedGrade?.name} - {selectedGrade?.subtitle}
+                            </span>
+                            <button className="btn btn-secondary" onClick={() => setSelectedGrade(null)}>返回</button>
+                        </div>
+                        
+                        <div className="tabs">
+                            <div className={`tab ${currentTab === 'basic' ? 'active' : ''}`} onClick={() => setCurrentTab('basic')}>基础信息</div>
+                            <div className={`tab ${currentTab === 'recognition' ? 'active' : ''}`} onClick={() => setCurrentTab('recognition')}>认一认</div>
+                            <div className={`tab ${currentTab === 'discrimination' ? 'active' : ''}`} onClick={() => setCurrentTab('discrimination')}>辨一辨</div>
+                            <div className={`tab ${currentTab === 'expression' ? 'active' : ''}`} onClick={() => setCurrentTab('expression')}>说一说</div>
+                            <div className={`tab ${currentTab === 'students' ? 'active' : ''}`} onClick={() => setCurrentTab('students')}>学生列表</div>
+                        </div>
+                        
+                        {/* 基础信息 */}
+                        {currentTab === 'basic' && (
+                            <div>
+                                <div className="form-group">
+                                    <label className="form-label">年段名称</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input"
+                                        value={selectedGrade?.name || ''}
+                                        onChange={(e) => updateGrade('name', e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">副标题</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input"
+                                        value={selectedGrade?.subtitle || ''}
+                                        onChange={(e) => updateGrade('subtitle', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* 认一认 */}
+                        {currentTab === 'recognition' && (
+                            <div>
+                                <p className="mb-10">上传学生需要识别名称的图片</p>
+                                <div className="form-group">
+                                    <label className="form-label">题目数量</label>
+                                    <input 
+                                        type="number" 
+                                        className="form-input"
+                                        value={selectedGrade?.recognition?.count || 3}
+                                        min="1"
+                                        max="20"
+                                        onChange={(e) => updateGrade('recognition', { ...selectedGrade.recognition, count: parseInt(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="upload-area" onClick={() => document.getElementById('recognition-upload').click()}>
+                                    <p>点击上传图片（可多选）</p>
+                                    <p style={{fontSize: '12px', color: '#999'}}>支持 jpg、png、gif 等格式</p>
+                                </div>
+                                <input 
+                                    id="recognition-upload" 
+                                    type="file" 
+                                    accept="image/*" 
+                                    multiple 
+                                    style={{display: 'none'}}
+                                    onChange={(e) => handleImageUpload(e, 'recognition')}
+                                />
+                                <div className="image-grid">
+                                    {(selectedGrade?.recognition?.images || []).map(img => (
+                                        <div key={img.id} className="image-item">
+                                            <img src={img.url} alt={img.name} />
+                                            <button className="remove-btn" onClick={() => removeImage('recognition', img.id)}>×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* 辨一辨 */}
+                        {currentTab === 'discrimination' && (
+                            <div>
+                                <p className="mb-10">每组：1张题目图 + 3张选项图</p>
+                                <div className="form-group">
+                                    <label className="form-label">题目数量</label>
+                                    <input 
+                                        type="number" 
+                                        className="form-input"
+                                        value={selectedGrade?.discrimination?.count || 3}
+                                        min="1"
+                                        max="20"
+                                        onChange={(e) => updateGrade('discrimination', { ...selectedGrade.discrimination, count: parseInt(e.target.value) })}
+                                    />
+                                </div>
+                                <button className="btn btn-success" onClick={addDiscriminationGroup}>+ 添加一组</button>
+                                
+                                <div style={{marginTop: '20px'}}>
+                                    {(selectedGrade?.discrimination?.groups || []).map((group, groupIndex) => (
+                                        <div key={group.id} className="discrimination-group">
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
+                                                <h4>第 {groupIndex + 1} 组</h4>
+                                                <button className="btn btn-danger btn-small" onClick={() => removeDiscriminationGroup(group.id)}>删除</button>
+                                            </div>
+                                            <div className="discrimination-images">
+                                                <div>
+                                                    <p style={{fontSize: '12px', color: '#666', marginBottom: '5px'}}>题目图</p>
+                                                    <div className="question-img" onClick={() => document.getElementById(`q-${group.id}`).click()}>
+                                                        {group.question ? <img src={group.question} alt="题目" /> : <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999'}}>+ 题</div>}
+                                                    </div>
+                                                    <input id={`q-${group.id}`} type="file" accept="image/*" style={{display: 'none'}} onChange={(e) => handleQuestionUpload(e, group.id)} />
+                                                </div>
+                                                <div className="arrow">→</div>
+                                                <div>
+                                                    <p style={{fontSize: '12px', color: '#666', marginBottom: '5px'}}>选项图（3张）</p>
+                                                    <div className="option-imgs">
+                                                        {[0, 1, 2].map(optIndex => (
+                                                            <div 
+                                                                key={optIndex} 
+                                                                className="option-img"
+                                                                onClick={() => document.getElementById(`o-${group.id}-${optIndex}`).click()}
+                                                            >
+                                                                {group.options?.[optIndex] ? 
+                                                                    <img src={group.options[optIndex]} alt={`选项${optIndex + 1}`} /> : 
+                                                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: '12px'}}>+</div>
+                                                                }
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    {[0, 1, 2].map(optIndex => (
+                                                        <input 
+                                                            key={optIndex}
+                                                            id={`o-${group.id}-${optIndex}`} 
+                                                            type="file" 
+                                                            accept="image/*" 
+                                                            style={{display: 'none'}} 
+                                                            onChange={(e) => handleOptionUpload(e, group.id, optIndex)}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* 说一说 */}
+                        {currentTab === 'expression' && (
+                            <div>
+                                <p className="mb-10">上传用于看图说话的图片</p>
+                                <div className="form-group">
+                                    <label className="form-label">题目数量</label>
+                                    <input 
+                                        type="number" 
+                                        className="form-input"
+                                        value={selectedGrade?.expression?.count || 3}
+                                        min="1"
+                                        max="20"
+                                        onChange={(e) => updateGrade('expression', { ...selectedGrade.expression, count: parseInt(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="upload-area" onClick={() => document.getElementById('expression-upload').click()}>
+                                    <p>点击上传图片（可多选）</p>
+                                    <p style={{fontSize: '12px', color: '#999'}}>支持 jpg、png、gif 等格式</p>
+                                </div>
+                                <input 
+                                    id="expression-upload" 
+                                    type="file" 
+                                    accept="image/*" 
+                                    multiple 
+                                    style={{display: 'none'}}
+                                    onChange={(e) => handleImageUpload(e, 'expression')}
+                                />
+                                <div className="image-grid">
+                                    {(selectedGrade?.expression?.images || []).map(img => (
+                                        <div key={img.id} className="image-item">
+                                            <img src={img.url} alt={img.name} />
+                                            <button className="remove-btn" onClick={() => removeImage('expression', img.id)}>×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* 学生列表 */}
+                        {currentTab === 'students' && (
+                            <div>
+                                <div className="form-group" style={{display: 'flex', gap: '10px'}}>
+                                    <input 
+                                        type="text" 
+                                        className="form-input"
+                                        placeholder="输入学生姓名"
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                addStudent(e.target.value);
+                                                e.target.value = '';
+                                            }
+                                        }}
+                                    />
+                                    <button 
+                                        className="btn btn-success"
+                                        onClick={() => {
+                                            const input = document.querySelector('.form-input');
+                                            addStudent(input.value);
+                                            input.value = '';
+                                        }}
+                                    >
+                                        添加
+                                    </button>
+                                </div>
+                                <div className="student-list">
+                                    {(selectedGrade?.students || []).map(student => (
+                                        <div key={student.id} className="student-tag">
+                                            <span className="name">{student.name}</span>
+                                            <button className="delete" onClick={() => removeStudent(student.id)}>×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                                {(!selectedGrade?.students || selectedGrade.students.length === 0) && (
+                                    <div className="empty-state mt-20">暂无学生，请添加</div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* 配置预览 */}
+                    <div className="card config-preview">
+                        <h4>📋 当前配置预览</h4>
+                        <div className="config-item">
+                            <span>年段名称</span>
+                            <span>{selectedGrade?.name}</span>
+                        </div>
+                        <div className="config-item">
+                            <span>认一认图片</span>
+                            <span>{selectedGrade?.recognition?.images?.length || 0} 张</span>
+                        </div>
+                        <div className="config-item">
+                            <span>辨一辨组数</span>
+                            <span>{selectedGrade?.discrimination?.groups?.length || 0} 组</span>
+                        </div>
+                        <div className="config-item">
+                            <span>说一说图片</span>
+                            <span>{selectedGrade?.expression?.images?.length || 0} 张</span>
+                        </div>
+                        <div className="config-item">
+                            <span>学生人数</span>
+                            <span>{selectedGrade?.students?.length || 0} 人</span>
+                        </div>
+                    </div>
+                </div>
+            );
+            
+            return (
+                <div className="container">
+                    <h1 className="page-title">⚙️ 后台管理</h1>
+                    
+                    {selectedGrade ? renderEditPage() : renderGradeList()}
+                    
+                    <div className="card mt-20">
+                        <div className="text-center">
+                            <p style={{color: '#666', marginBottom: '10px'}}>使用说明：</p>
+                            <p style={{color: '#999', fontSize: '14px'}}>
+                                1. 选择年段进行编辑<br/>
+                                2. 上传各环节图片<br/>
+                                3. 添加学生名单<br/>
+                                4. 保存后用 index.html 开始比赛
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

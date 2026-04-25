@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口语交际比赛</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #6ecbf5, #c2e9fb); min-height: 100vh; }
+        
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        
+        /* 页面标题 */
+        .page-title {
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* 卡片样式 */
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4); }
+        .btn:active { transform: translateY(0); }
+        
+        .btn-secondary { background: linear-gradient(45deg, #6ecbf5, #4a9fd4); }
+        .btn-success { background: linear-gradient(45deg, #28a745, #20c997); }
+        .btn-danger { background: linear-gradient(45deg, #dc3545, #ff6b6b); }
+        .btn-large { padding: 20px 40px; font-size: 22px; }
+        
+        /* 评分按钮 */
+        .score-btn {
+            padding: 15px 25px;
+            font-size: 20px;
+            border-radius: 15px;
+            margin: 5px;
+        }
+        .score-3 { background: linear-gradient(45deg, #28a745, #20c997); }
+        .score-2 { background: linear-gradient(45deg, #ffc107, #ff9800); }
+        .score-1 { background: linear-gradient(45deg, #fd7e14, #ff6b6b); }
+        .score-0 { background: linear-gradient(45deg, #6c757d, #adb5bd); }
+        
+        /* 环节标题 */
+        .section-title {
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            border-radius: 15px;
+            color: white;
+        }
+        .section-1 { background: linear-gradient(45deg, #ff6b6b, #ffa500); }
+        .section-2 { background: linear-gradient(45deg, #6ecbf5, #4a9fd4); }
+        .section-3 { background: linear-gradient(45deg, #9b59b6, #e91e63); }
+        
+        /* 学生信息栏 */
+        .student-bar {
+            background: linear-gradient(45deg, #6ecbf5, #c2e9fb);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-size: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        /* 图片展示区 */
+        .image-display {
+            width: 400px;
+            height: 400px;
+            margin: 20px auto;
+            border: 4px solid #6ecbf5;
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+        }
+        .image-display img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        
+        /* 辨一辨选项区 */
+        .options-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .option-item {
+            width: 150px;
+            height: 150px;
+            border: 3px solid #ddd;
+            border-radius: 15px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .option-item:hover { border-color: #6ecbf5; transform: scale(1.05); }
+        .option-item.selected { border-color: #ff6b6b; background: #fff0f0; }
+        .option-item.correct { border-color: #28a745; background: #d4edda; }
+        .option-item.wrong { border-color: #dc3545; background: #f8d7da; }
+        .option-item img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* 反馈动画 */
+        .feedback-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .feedback-overlay.show { opacity: 1; }
+        .feedback-content {
+            background: white;
+            padding: 40px 60px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 2em;
+        }
+        .feedback-content.correct { color: #28a745; }
+        .feedback-content.wrong { color: #dc3545; }
+        .feedback-content .emoji { font-size: 3em; margin-bottom: 10px; }
+        
+        /* 结果展示 */
+        .result-total {
+            text-align: center;
+            font-size: 3em;
+            color: #ff6b6b;
+            margin: 30px 0;
+        }
+        .result-breakdown {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        .result-item {
+            text-align: center;
+            padding: 20px;
+            border-radius: 15px;
+            background: #f8f9fa;
+            min-width: 120px;
+        }
+        .result-item .label { font-size: 0.9em; color: #666; }
+        .result-item .score { font-size: 2em; color: #ff6b6b; font-weight: bold; }
+        
+        /* 统计列表 */
+        .stats-list { margin-top: 20px; }
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .stats-item:hover { background: #f8f9fa; }
+        .stats-item .name { font-size: 1.2em; }
+        .stats-item .score { color: #ff6b6b; font-weight: bold; font-size: 1.2em; }
+        
+        /* 随机点名 */
+        .random-name {
+            text-align: center;
+            font-size: 4em;
+            color: #ff6b6b;
+            padding: 60px;
+            animation: pulse 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+        
+        /* 选择器 */
+        .select-box {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.2em;
+        }
+        
+        .text-center { text-align: center; }
+        .mt-20 { margin-top: 20px; }
+        .mb-20 { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        // 数据存储key
+        const STORAGE_KEYS = {
+            GRADES: 'speech_contest_grades',
+            RESULTS: 'speech_contest_results',
+            CURRENT_SESSION: 'speech_contest_session'
+        };
+        
+        // 默认数据
+        const defaultGrades = [
+            {
+                id: '1',
+                name: '中低年段',
+                subtitle: '好吃的水果',
+                recognition: { images: [], count: 3 },
+                discrimination: { groups: [], count: 3 },
+                expression: { images: [], count: 3 }
+            },
+            {
+                id: '2',
+                name: '高年段',
+                subtitle: '我们的住房',
+                recognition: { images: [], count: 3 },
+                discrimination: { groups: [], count: 3 },
+                expression: { images: [], count: 3 }
+            }
+        ];
+        
+        function App() {
+            const [screen, setScreen] = useState('home'); // home, select-grade, random, game, result, stats
+            const [grades, setGrades] = useState([]);
+            const [selectedGrade, setSelectedGrade] = useState(null);
+            const [currentRound, setCurrentRound] = useState(0); // 0:认一认, 1:辨一辨, 2:说一说
+            const [students, setStudents] = useState([]);
+            const [currentStudent, setCurrentStudent] = useState(null);
+            const [currentScores, setCurrentScores] = useState({ r: null, d: null, e: null });
+            const [results, setResults] = useState([]);
+            const [feedback, setFeedback] = useState({ show: false, correct: null, message: '' });
+            const [tempName, setTempName] = useState(''); // 临时点名
+            const [rolling, setRolling] = useState(false);
+            
+            // 当前环节图片
+            const [currentImages, setCurrentImages] = useState([]);
+            const [discriminationOptions, setDiscriminationOptions] = useState([]);
+            const [selectedOption, setSelectedOption] = useState(null);
+            
+            const rollInterval = useRef(null);
+            
+            // 加载数据
+            useEffect(() => {
+                const savedGrades = localStorage.getItem(STORAGE_KEYS.GRADES);
+                if (savedGrades) {
+                    setGrades(JSON.parse(savedGrades));
+                } else {
+                    setGrades(defaultGrades);
+                    localStorage.setItem(STORAGE_KEYS.GRADES, JSON.stringify(defaultGrades));
+                }
+                
+                const savedResults = localStorage.getItem(STORAGE_KEYS.RESULTS);
+                if (savedResults) {
+                    setResults(JSON.parse(savedResults));
+                }
+            }, []);
+            
+            // 保存成绩
+            const saveResults = (newResults) => {
+                localStorage.setItem(STORAGE_KEYS.RESULTS, JSON.stringify(newResults));
+                setResults(newResults);
+            };
+            
+            // 选择年级
+            const selectGrade = (grade) => {
+                setSelectedGrade(grade);
+                // 收集该年级学生
+                const gradeStudents = grade.students || [];
+                setStudents(gradeStudents);
+                setScreen('random');
+            };
+            
+            // 开始随机点名
+            const startRolling = () => {
+                if (students.length === 0) {
+                    alert('该年级没有学生，请先在后台添加学生');
+                    return;
+                }
+                setRolling(true);
+                let count = 0;
+                const maxCount = 20;
+                rollInterval.current = setInterval(() => {
+                    const randomIndex = Math.floor(Math.random() * students.length);
+                    setTempName(students[randomIndex].name);
+                    count++;
+                    if (count >= maxCount) {
+                        clearInterval(rollInterval.current);
+                        setRolling(false);
+                    }
+                }, 100);
+            };
+            
+            // 确认学生
+            const confirmStudent = () => {
+                if (!tempName) return;
+                setCurrentStudent(tempName);
+                setCurrentScores({ r: null, d: null, e: null });
+                setCurrentRound(0);
+                setSelectedOption(null);
+                prepareRound();
+                setScreen('game');
+            };
+            
+            // 准备当前回合
+            const prepareRound = () => {
+                if (!selectedGrade) return;
+                
+                if (currentRound === 0) {
+                    // 认一认
+                    const imgs = selectedGrade.recognition?.images || [];
+                    if (imgs.length === 0) {
+                        alert('请先在后台添加认一认图片');
+                        return;
+                    }
+                    const randomIndex = Math.floor(Math.random() * imgs.length);
+                    setCurrentImages([imgs[randomIndex]]);
+                } else if (currentRound === 1) {
+                    // 辨一辨
+                    const groups = selectedGrade.discrimination?.groups || [];
+                    if (groups.length === 0) {
+                        alert('请先在后台添加辨一辨图片');
+                        return;
+                    }
+                    const randomIndex = Math.floor(Math.random() * groups.length);
+                    const group = groups[randomIndex];
+                    setCurrentImages([group.question]);
+                    // 打乱选项顺序
+                    const shuffled = [...group.options].sort(() => Math.random() - 0.5);
+                    setDiscriminationOptions(shuffled);
+                } else {
+                    // 说一说
+                    const imgs = selectedGrade.expression?.images || [];
+                    if (imgs.length === 0) {
+                        alert('请先在后台添加说一说图片');
+                        return;
+                    }
+                    const randomIndex = Math.floor(Math.random() * imgs.length);
+                    setCurrentImages([imgs[randomIndex]]);
+                }
+                setSelectedOption(null);
+            };
+            
+            // 辨一辨选择选项
+            const handleOptionSelect = (option, index) => {
+                if (selectedOption !== null) return; // 已选择
+                
+                setSelectedOption(index);
+                const questionImage = currentImages[0];
+                const isCorrect = option === questionImage;
+                
+                const newScores = { ...currentScores, d: isCorrect ? 3 : 0 };
+                setCurrentScores(newScores);
+                
+                // 显示反馈
+                showFeedback(isCorrect);
+                
+                // 3秒后进入下一环节
+                setTimeout(() => {
+                    if (currentRound < 2) {
+                        setCurrentRound(currentRound + 1);
+                        setSelectedOption(null);
+                        prepareRound();
+                    } else {
+                        finishGame(newScores);
+                    }
+                }, 2000);
+            };
+            
+            // 显示反馈
+            const showFeedback = (correct) => {
+                setFeedback({
+                    show: true,
+                    correct,
+                    message: correct ? '正确！+3分' : '错误！'
+                });
+                setTimeout(() => {
+                    setFeedback({ show: false, correct: null, message: '' });
+                }, 1500);
+            };
+            
+            // 认一认/说一说评分
+            const handleScore = (score) => {
+                const key = currentRound === 0 ? 'r' : 'e';
+                const newScores = { ...currentScores, [key]: score };
+                setCurrentScores(newScores);
+                
+                if (currentRound < 2) {
+                    setCurrentRound(currentRound + 1);
+                    prepareRound();
+                } else {
+                    finishGame(newScores);
+                }
+            };
+            
+            // 完成游戏
+            const finishGame = (scores) => {
+                const total = (scores.r || 0) + (scores.d || 0) + (scores.e || 0);
+                const newResult = {
+                    student: currentStudent,
+                    scores: scores,
+                    total: total,
+                    date: new Date().toLocaleDateString()
+                };
+                const newResults = [...results, newResult];
+                saveResults(newResults);
+                setScreen('result');
+            };
+            
+            // 下一位学生
+            const nextStudent = () => {
+                setCurrentStudent(null);
+                setTempName('');
+                setCurrentScores({ r: null, d: null, e: null });
+                setCurrentRound(0);
+                setScreen('random');
+            };
+            
+            // 返回首页
+            const goHome = () => {
+                setScreen('home');
+                setSelectedGrade(null);
+                setCurrentStudent(null);
+            };
+            
+            // 清空统计
+            const clearStats = () => {
+                if (confirm('确定要清空所有成绩吗？')) {
+                    saveResults([]);
+                }
+            };
+            
+            // 渲染页面
+            const renderScreen = () => {
+                switch(screen) {
+                    case 'home':
+                        return (
+                            <div className="container">
+                                <h1 className="page-title">🎯 口语交际比赛</h1>
+                                <div className="card">
+                                    <div className="text-center">
+                                        <button className="btn btn-large" onClick={() => setScreen('select-grade')}>
+                                            🎮 开始比赛
+                                        </button>
+                                    </div>
+                                    <div className="mt-20 text-center">
+                                        <button className="btn btn-secondary btn-large" onClick={() => setScreen('stats')}>
+                                            📊 查看统计
+                                        </button>
+                                    </div>
+                                    <p className="text-center mt-20" style={{color: '#999', fontSize: '14px'}}>
+                                        请确保已在后台配置好年段、学生和题库
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    
+                    case 'select-grade':
+                        return (
+                            <div className="container">
+                                <h1 className="page-title">选择年段</h1>
+                                <div className="card">
+                                    {grades.length === 0 ? (
+                                        <div className="empty-state">
+                                            暂无配置，请先在 admin.html 中添加年段
+                                        </div>
+                                    ) : (
+                                        grades.map(grade => (
+                                            <div key={grade.id} style={{marginBottom: '15px'}}>
+                                                <button 
+                                                    className="btn btn-large" 
+                                                    style={{width: '100%', background: 'linear-gradient(45deg, #6ecbf5, #4a9fd4)'}}
+                                                    onClick={() => selectGrade(grade)}
+                                                >
+                                                    {grade.name} - {grade.subtitle}
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                                <div className="text-center">
+                                    <button className="btn btn-secondary" onClick={goHome}>返回</button>
+                                </div>
+                            </div>
+                        );
+                    
+                    case 'random':
+                        return (
+                            <div className="container">
+                                <h1 className="page-title">随机点名</h1>
+                                <div className="card">
+                                    <div className="random-name">
+                                        {tempName || '点击按钮开始点名'}
+                                    </div>
+                                    <div className="text-center mt-20">
+                                        <button className="btn btn-large btn-secondary" onClick={startRolling} disabled={rolling}>
+                                            {rolling ? '随机中...' : '🎲 开始点名'}
+                                        </button>
+                                    </div>
+                                    {tempName && (
+                                        <div className="text-center mt-20">
+                                            <button className="btn btn-success btn-large" onClick={confirmStudent}>
+                                                ✓ 确认这位学生
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-center">
+                                    <button className="btn btn-secondary" onClick={() => setScreen('select-grade')}>返回</button>
+                                </div>
+                            </div>
+                        );
+                    
+                    case 'game':
+                        return (
+                            <div className="container">
+                                {/* 学生信息栏 */}
+                                <div className="student-bar">
+                                    <span>👤 {currentStudent}</span>
+                                    <span>环节 {currentRound + 1}/3</span>
+                                </div>
+                                
+                                {/* 环节标题 */}
+                                <div style={{marginBottom: '20px'}}>
+                                    {currentRound === 0 && <div className="section-title section-1">📷 认一认</div>}
+                                    {currentRound === 1 && <div className="section-title section-2">🔍 辨一辨</div>}
+                                    {currentRound === 2 && <div className="section-title section-3">🗣️ 说一说</div>}
+                                </div>
+                                
+                                <div className="card">
+                                    {/* 认一认/说一说 */}
+                                    {(currentRound === 0 || currentRound === 2) && (
+                                        <div>
+                                            <div className="image-display">
+                                                {currentImages[0] && <img src={currentImages[0]} alt="题目" />}
+                                            </div>
+                                            <p className="text-center" style={{margin: '20px 0', fontSize: '18px'}}>
+                                                {currentRound === 0 ? '请说出这个物品的名称' : '请描述这张图片'}
+                                            </p>
+                                            <div className="text-center">
+                                                <button className="btn score-btn score-3" onClick={() => handleScore(3)}>3分</button>
+                                                <button className="btn score-btn score-2" onClick={() => handleScore(2)}>2分</button>
+                                                <button className="btn score-btn score-1" onClick={() => handleScore(1)}>1分</button>
+                                                <button className="btn score-btn score-0" onClick={() => handleScore(0)}>0分</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* 辨一辨 */}
+                                    {currentRound === 1 && (
+                                        <div>
+                                            <p className="text-center" style={{marginBottom: '20px', fontSize: '20px'}}>
+                                                找出与上面相同的类型
+                                            </p>
+                                            <div className="image-display" style={{width: '250px', height: '250px'}}>
+                                                {currentImages[0] && <img src={currentImages[0]} alt="题目" />}
+                                            </div>
+                                            <div className="options-container">
+                                                {discriminationOptions.map((option, index) => (
+                                                    <div 
+                                                        key={index}
+                                                        className={`option-item ${
+                                                            selectedOption === index ? 
+                                                                (option === currentImages[0] ? 'correct' : 'wrong') : ''
+                                                        }`}
+                                                        onClick={() => handleOptionSelect(option, index)}
+                                                    >
+                                                        <img src={option} alt={`选项${index + 1}`} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    
+                    case 'result':
+                        const total = (currentScores.r || 0) + (currentScores.d || 0) + (currentScores.e || 0);
+                        return (
+                            <div className="container">
+                                <h1 className="page-title">答题完成</h1>
+                                <div className="card">
+                                    <div className="text-center">
+                                        <p style={{fontSize: '24px', marginBottom: '10px'}}>👤 {currentStudent}</p>
+                                        <p style={{fontSize: '18px', color: '#666'}}>答题结果</p>
+                                    </div>
+                                    
+                                    <div className="result-breakdown">
+                                        <div className="result-item">
+                                            <div className="label">认一认</div>
+                                            <div className="score">{currentScores.r ?? 0}分</div>
+                                        </div>
+                                        <div className="result-item">
+                                            <div className="label">辨一辨</div>
+                                            <div className="score">{currentScores.d ?? 0}分</div>
+                                        </div>
+                                        <div className="result-item">
+                                            <div className="label">说一说</div>
+                                            <div className="score">{currentScores.e ?? 0}分</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="result-total">
+                                        总分：{total} / 9 分
+                                    </div>
+                                    
+                                    <div className="text-center">
+                                        <button className="btn btn-success btn-large" onClick={nextStudent}>
+                                            下一位学生
+                                        </button>
+                                        <button className="btn btn-secondary btn-large" onClick={() => setScreen('stats')}>
+                                            查看统计
+                                        </button>
+                                        <button className="btn btn-secondary" onClick={goHome}>
+                                            返回首页
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    
+                    case 'stats':
+                        return (
+                            <div className="container">
+                                <h1 className="page-title">📊 结果统计</h1>
+                                <div className="card">
+                                    {results.length === 0 ? (
+                                        <div className="empty-state">暂无成绩记录</div>
+                                    ) : (
+                                        <div className="stats-list">
+                                            {results.map((result, index) => (
+                                                <div key={index} className="stats-item">
+                                                    <div>
+                                                        <div className="name">{result.student}</div>
+                                                        <div style={{fontSize: '12px', color: '#999'}}>{result.date}</div>
+                                                    </div>
+                                                    <div className="score">{result.total}分</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-center">
+                                    <button className="btn btn-danger" onClick={clearStats}>清空统计</button>
+                                    <button className="btn btn-secondary" onClick={goHome}>返回首页</button>
+                                </div>
+                            </div>
+                        );
+                    
+                    default:
+                        return null;
+                }
+            };
+            
+            return (
+                <div>
+                    {renderScreen()}
+                    
+                    {/* 反馈遮罩 */}
+                    {feedback.show && (
+                        <div className="feedback-overlay show">
+                            <div className={`feedback-content ${feedback.correct ? 'correct' : 'wrong'}`}>
+                                <div className="emoji">{feedback.correct ? '✅' : '❌'}</div>
+                                <div>{feedback.message}</div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
