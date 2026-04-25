@@ -353,15 +353,15 @@
                     // 辨一辨
                     const groups = selectedGrade.discrimination?.groups || [];
                     if (groups.length === 0) {
-                        alert('请先在后台添加辨一辨图片');
+                        alert('请先在后台配置辨一辨组合');
                         return;
                     }
                     const randomIndex = Math.floor(Math.random() * groups.length);
                     const group = groups[randomIndex];
-                    setCurrentImages([group.question]);
+                    setCurrentImages([group.bigImage.url]);
                     // 打乱选项顺序
-                    const shuffled = [...group.options].sort(() => Math.random() - 0.5);
-                    setDiscriminationOptions(shuffled);
+                    const shuffled = [...group.smallImages].sort(() => Math.random() - 0.5);
+                    setDiscriminationOptions(shuffled.map(img => img.url));
                 } else {
                     // 说一说
                     const imgs = selectedGrade.expression?.images || [];
