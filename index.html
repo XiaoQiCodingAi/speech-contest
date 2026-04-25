@@ -355,36 +355,42 @@
                     setCorrectOptionIndex(null);
 
                 } else if (currentRound === 1) {
-                    // 辨一辨：随机生成
+                    // 辨一辨：使用标记的正确图片
                     const bigImgs = selectedGrade.discrimination?.bigImages || [];
                     const smallImgs = selectedGrade.discrimination?.smallImages || [];
                     
-                    if (bigImgs.length === 0 || smallImgs.length < 3) {
-                        alert('请先在后台添加足够的辨一辨图片（至少1张大图+3张小图）');
+                    // 只使用已标记正确答案的大图
+                    const validBigImgs = bigImgs.filter(b => b.correctSmallId);
+                    
+                    if (validBigImgs.length === 0 || smallImgs.length < 3) {
+                        alert('请先在后台配置辨一辨：上传大图并标记正确答案');
                         return;
                     }
                     
-                    // 随机选1张大图作为题目
-                    const questionIndex = Math.floor(Math.random() * bigImgs.length);
-                    const questionImg = bigImgs[questionIndex];
+                    // 随机选1个大图作为题目
+                    const questionIndex = Math.floor(Math.random() * validBigImgs.length);
+                    const questionImg = validBigImgs[questionIndex];
                     setCurrentImages([questionImg]);
                     
-                    // 随机选1张小图作为正确答案
-                    const correctIndex = Math.floor(Math.random() * smallImgs.length);
-                    const correctImg = smallImgs[correctIndex];
+                    // 找到该大图对应的正确答案小图
+                    const correctSmallImg = smallImgs.find(s => s.id === questionImg.correctSmallId);
+                    if (!correctSmallImg) {
+                        alert('正确答案图片未找到，请重新标记');
+                        return;
+                    }
                     
-                    // 从剩余小图中随机选2个作为错误选项
-                    const remainingSmall = smallImgs.filter((_, i) => i !== correctIndex);
-                    const shuffledRemaining = remainingSmall.sort(() => Math.random() - 0.5);
-                    const wrongImgs = shuffledRemaining.slice(0, 2);
+                    // 从剩余小图中随机选2个作为错误选项（排除正确答案）
+                    const wrongSmallImgs = smallImgs
+                        .filter(s => s.id !== questionImg.correctSmallId)
+                        .sort(() => Math.random() - 0.5)
+                        .slice(0, 2);
                     
-                    // 3个选项打乱顺序，记录正确答案位置
-                    const allOptions = [correctImg, ...wrongImgs];
-                    const correctPosition = 0; // 正确答案在数组第一个位置
-                    // 打乱顺序
+                    // 3个选项打乱顺序
+                    const allOptions = [correctSmallImg, ...wrongSmallImgs];
                     const shuffledOptions = [...allOptions].sort(() => Math.random() - 0.5);
+                    
                     // 找出正确答案打乱后的位置
-                    const newCorrectIndex = shuffledOptions.findIndex(opt => opt === correctImg);
+                    const newCorrectIndex = shuffledOptions.findIndex(opt => opt.id === correctSmallImg.id);
                     setDiscriminationOptions(shuffledOptions);
                     setCorrectOptionIndex(newCorrectIndex);
                     
