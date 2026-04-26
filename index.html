@@ -438,6 +438,10 @@
                     const img = imgs[randomIndex];
                     console.log('随机选择图片, index:', randomIndex, 'img:', img);
                     setCurrentImages([img]);
+                    
+                    // 预加载当前环节剩余图片
+                    const remainingImgs = imgs.filter((_, i) => i !== randomIndex);
+                    preloadImages(remainingImgs);
 
                 } else if (currentRound === 1) {
                     console.log('进入辨一辨逻辑块');
@@ -488,6 +492,11 @@
                     setDiscriminationOptions(shuffledOptions);
                     setCorrectOptionIndex(newCorrectIndex);
                     
+                    // 预加载当前环节剩余大图和所有小图
+                    const remainingBigImgs = validBigImgs.filter(b => b.id !== questionImg.id);
+                    const allSmallImgs = smallImgs;
+                    preloadImages([...remainingBigImgs, ...allSmallImgs]);
+                    
                 } else {
                     // 说一说
                     const imgs = selectedGrade.expression?.images || [];
@@ -496,11 +505,24 @@
                         return;
                     }
                     const randomIndex = Math.floor(Math.random() * imgs.length);
-                    setCurrentImages([imgs[randomIndex]]);
+                    const img = imgs[randomIndex];
+                    setCurrentImages([img]);
                     setDiscriminationOptions([]);
                     setCorrectOptionIndex(null);
+                    
+                    // 预加载当前环节剩余图片
+                    const remainingImgs = imgs.filter((_, i) => i !== randomIndex);
+                    preloadImages(remainingImgs);
                 }
                 setSelectedOption(null);
+            };
+            
+            // 预加载图片（静默预加载，不影响当前显示）
+            const preloadImages = (images) => {
+                images.forEach(img => {
+                    const preload = new Image();
+                    preload.src = img.url;
+                });
             };
             
             // 辨一辨选择选项
