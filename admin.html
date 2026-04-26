@@ -449,6 +449,11 @@
                                                         onClick={() => markCorrectSmall(img)}
                                                     >
                                                         <img src={img.url} alt={img.name} />
+                                                        <button 
+                                                            className="remove-btn" 
+                                                            style={{position: 'absolute', top: '2px', right: '2px', zIndex: 1, width: '18px', height: '18px', fontSize: '10px', padding: 0}}
+                                                            onClick={(e) => { e.stopPropagation(); removeImage('smallImages', img.id); }}
+                                                        >×</button>
                                                     </div>
                                                 );
                                             })}
