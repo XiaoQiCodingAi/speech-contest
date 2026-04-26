@@ -252,19 +252,22 @@
             
             const handleImageUpload = (e, field) => {
                 const files = Array.from(e.target.files);
-                
-                // 使用Promise.all等待所有文件读取为base64
+                if (files.length === 0) return;
+
+                // 上传到服务器API
                 Promise.all(files.map(file => {
-                    return new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            resolve({
-                                id: Date.now() + Math.random(),
-                                url: e.target.result, // base64 data URL
-                                name: file.name
-                            });
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    return fetch('/speech-contest-api/upload', {
+                        method: 'POST',
+                        body: formData
+                    }).then(res => res.json()).then(data => {
+                        if (data.error) throw new Error(data.error);
+                        return {
+                            id: Date.now() + Math.random(),
+                            url: data.url,
+                            name: file.name
                         };
-                        reader.readAsDataURL(file);
                     });
                 })).then((newImages) => {
                     if (field === 'recognition' || field === 'expression') {
@@ -278,10 +281,32 @@
                         const currentImages = selectedGrade.discrimination?.smallImages || [];
                         updateGrade('discrimination', { ...selectedGrade.discrimination, smallImages: [...currentImages, ...newImages] });
                     }
+                }).catch(err => {
+                    alert('上传失败: ' + err.message);
                 });
             };
             
             const removeImage = (field, imageId) => {
+                // 找到要删除的图片URL
+                let imageUrl = null;
+                if (field === 'recognition' || field === 'expression') {
+                    const img = selectedGrade[field]?.images?.find(img => img.id === imageId);
+                    if (img) imageUrl = img.url;
+                } else if (field === 'bigImages') {
+                    const img = selectedGrade.discrimination?.bigImages?.find(img => img.id === imageId);
+                    if (img) imageUrl = img.url;
+                } else if (field === 'smallImages') {
+                    const img = selectedGrade.discrimination?.smallImages?.find(img => img.id === imageId);
+                    if (img) imageUrl = img.url;
+                }
+
+                // 从服务器删除图片
+                if (imageUrl) {
+                    const filename = imageUrl.split('/').pop();
+                    fetch(`/speech-contest-api/files/${filename}`, { method: 'DELETE' }).catch(() => {});
+                }
+
+                // 更新本地状态
                 if (field === 'recognition' || field === 'expression') {
                     const currentImages = selectedGrade[field]?.images || [];
                     updateGrade(field, { ...selectedGrade[field], images: currentImages.filter(img => img.id !== imageId) });
