@@ -379,9 +379,9 @@
                         return;
                     }
                     
-                    // 从剩余小图中随机选2个作为错误选项（排除正确答案）
+                    // 从剩余小图中随机选2个作为错误选项（排除正确答案小图，确保正确答案不会出现在干扰项中）
                     const wrongSmallImgs = smallImgs
-                        .filter(s => s.id !== questionImg.correctSmallId)
+                        .filter(s => s.id !== questionImg.correctSmallId) // 排除正确答案
                         .sort(() => Math.random() - 0.5)
                         .slice(0, 2);
                     
