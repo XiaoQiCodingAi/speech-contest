@@ -324,9 +324,10 @@
             const [grades, setGrades] = useState([]);
             const [selectedGrade, setSelectedGrade] = useState(null);
             const [currentRound, setCurrentRound] = useState(0); // 0:认一认, 1:辨一辨, 2:说一说
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0); // 当前题目在当前环节中的索引
             const [students, setStudents] = useState([]);
             const [currentStudent, setCurrentStudent] = useState(null);
-            const [currentScores, setCurrentScores] = useState({ r: null, d: null, e: null });
+            const [currentScores, setCurrentScores] = useState({ r: [], d: [], e: [] }); // 改为数组，存储每题分数
             const [results, setResults] = useState([]);
             const [feedback, setFeedback] = useState({ show: false, correct: null, message: '' });
             const [tempName, setTempName] = useState(''); // 临时点名
@@ -399,8 +400,9 @@
             const confirmStudent = () => {
                 if (!tempName) return;
                 setCurrentStudent(tempName);
-                setCurrentScores({ r: null, d: null, e: null });
+                setCurrentScores({ r: [], d: [], e: [] });
                 setCurrentRound(0);
+                setCurrentQuestionIndex(0);
                 setSelectedOption(null);
                 setCorrectOptionIndex(null);
                 prepareRound();
@@ -485,20 +487,29 @@
                 setSelectedOption(index);
                 const isCorrect = index === correctOptionIndex;
                 
-                const newScores = { ...currentScores, d: isCorrect ? 3 : 0 };
+                const newScores = { ...currentScores, d: [...(currentScores.d || []), isCorrect ? 3 : 0] };
                 setCurrentScores(newScores);
                 
                 // 显示反馈
                 showFeedback(isCorrect);
                 
-                // 3秒后进入下一环节
+                // 3秒后进入下一题或下一环节
+                const roundCount = selectedGrade?.discrimination?.count || 3;
                 setTimeout(() => {
-                    if (currentRound < 2) {
-                        setCurrentRound(currentRound + 1);
-                        setSelectedOption(null);
+                    setSelectedOption(null);
+                    if (currentQuestionIndex < roundCount - 1) {
+                        // 继续当前环节下一题
+                        setCurrentQuestionIndex(currentQuestionIndex + 1);
                         prepareRound();
                     } else {
-                        finishGame(newScores);
+                        // 进入下一环节
+                        setCurrentQuestionIndex(0);
+                        if (currentRound < 2) {
+                            setCurrentRound(currentRound + 1);
+                            prepareRound();
+                        } else {
+                            finishGame(newScores);
+                        }
                     }
                 }, 2000);
             };
@@ -518,23 +529,36 @@
             // 认一认/说一说评分
             const handleScore = (score) => {
                 const key = currentRound === 0 ? 'r' : 'e';
-                const newScores = { ...currentScores, [key]: score };
+                const roundCount = selectedGrade?.[key === 'r' ? 'recognition' : 'expression']?.count || 3;
+                const newScores = { ...currentScores, [key]: [...(currentScores[key] || []), score] };
                 setCurrentScores(newScores);
                 
-                if (currentRound < 2) {
-                    setCurrentRound(currentRound + 1);
+                // 检查是否完成当前环节所有题目
+                if (currentQuestionIndex < roundCount - 1) {
+                    // 继续当前环节下一题
+                    setCurrentQuestionIndex(currentQuestionIndex + 1);
                     prepareRound();
                 } else {
-                    finishGame(newScores);
+                    // 进入下一环节
+                    setCurrentQuestionIndex(0);
+                    if (currentRound < 2) {
+                        setCurrentRound(currentRound + 1);
+                        prepareRound();
+                    } else {
+                        finishGame(newScores);
+                    }
                 }
             };
             
             // 完成游戏
             const finishGame = (scores) => {
-                const total = (scores.r || 0) + (scores.d || 0) + (scores.e || 0);
+                const rTotal = (scores.r || []).reduce((a, b) => a + b, 0);
+                const dTotal = (scores.d || []).reduce((a, b) => a + b, 0);
+                const eTotal = (scores.e || []).reduce((a, b) => a + b, 0);
+                const total = rTotal + dTotal + eTotal;
                 const newResult = {
                     student: currentStudent,
-                    scores: scores,
+                    scores: { r: rTotal, d: dTotal, e: eTotal },
                     total: total,
                     date: new Date().toLocaleDateString()
                 };
@@ -547,8 +571,9 @@
             const nextStudent = () => {
                 setCurrentStudent(null);
                 setTempName('');
-                setCurrentScores({ r: null, d: null, e: null });
+                setCurrentScores({ r: [], d: [], e: [] });
                 setCurrentRound(0);
+                setCurrentQuestionIndex(0);
                 setScreen('random');
             };
             
@@ -653,7 +678,7 @@
                                 {/* 学生信息栏 */}
                                 <div className="student-bar">
                                     <span>👤 {currentStudent}</span>
-                                    <span>环节 {currentRound + 1}/3</span>
+                                    <span>环节 {currentRound + 1}/3 第 {currentQuestionIndex + 1} 题</span>
                                 </div>
                                 
                                 {/* 环节标题 */}
