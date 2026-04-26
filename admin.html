@@ -7,6 +7,7 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="db.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #6ecbf5, #c2e9fb); min-height: 100vh; }
@@ -140,18 +141,21 @@
             const [selectedBigImage, setSelectedBigImage] = useState(null);
             
             useEffect(() => {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    setGrades(JSON.parse(saved));
-                } else {
-                    setGrades(defaultGrades);
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultGrades));
-                }
+                // 使用 IndexedDB 加载数据
+                window.SpeechContestDB.loadGrades().then(saved => {
+                    if (saved) {
+                        setGrades(saved);
+                    } else {
+                        setGrades(defaultGrades);
+                        window.SpeechContestDB.saveGrades(defaultGrades);
+                    }
+                });
             }, []);
             
             const saveGrades = (newGrades) => {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(newGrades));
+                // 同步更新UI，异步保存到IndexedDB
                 setGrades(newGrades);
+                window.SpeechContestDB.saveGrades(newGrades);
             };
             
             const editGrade = (grade) => {

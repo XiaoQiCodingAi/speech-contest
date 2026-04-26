@@ -7,6 +7,7 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="db.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #6ecbf5, #c2e9fb); min-height: 100vh; }
@@ -277,24 +278,28 @@
             
             // 加载数据
             useEffect(() => {
-                const savedGrades = localStorage.getItem(STORAGE_KEYS.GRADES);
-                if (savedGrades) {
-                    setGrades(JSON.parse(savedGrades));
-                } else {
-                    setGrades(defaultGrades);
-                    localStorage.setItem(STORAGE_KEYS.GRADES, JSON.stringify(defaultGrades));
-                }
+                // 使用 IndexedDB 加载数据
+                window.SpeechContestDB.loadGrades().then(savedGrades => {
+                    if (savedGrades) {
+                        setGrades(savedGrades);
+                    } else {
+                        setGrades(defaultGrades);
+                        window.SpeechContestDB.saveGrades(defaultGrades);
+                    }
+                });
                 
-                const savedResults = localStorage.getItem(STORAGE_KEYS.RESULTS);
-                if (savedResults) {
-                    setResults(JSON.parse(savedResults));
-                }
+                window.SpeechContestDB.loadResults().then(savedResults => {
+                    if (savedResults && savedResults.length > 0) {
+                        setResults(savedResults);
+                    }
+                });
             }, []);
             
             // 保存成绩
             const saveResults = (newResults) => {
-                localStorage.setItem(STORAGE_KEYS.RESULTS, JSON.stringify(newResults));
+                // 同步更新UI，异步保存到IndexedDB
                 setResults(newResults);
+                window.SpeechContestDB.saveResults(newResults);
             };
             
             // 选择年级
