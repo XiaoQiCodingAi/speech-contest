@@ -341,6 +341,15 @@
             
             const rollInterval = useRef(null);
             
+            // 监听screen和currentRound和currentQuestionIndex变化，自动准备回合
+            useEffect(() => {
+                console.log('useEffect触发, screen=', screen, 'currentRound=', currentRound, 'currentQuestionIndex=', currentQuestionIndex, 'selectedGrade=', selectedGrade ? selectedGrade.id : 'null');
+                if (screen === 'game' && selectedGrade) {
+                    console.log('调用prepareRound');
+                    prepareRound();
+                }
+            }, [screen, currentRound, currentQuestionIndex]);
+            
             // 加载数据
             useEffect(() => {
                 // 使用 IndexedDB 加载数据
@@ -398,6 +407,7 @@
             
             // 确认学生
             const confirmStudent = () => {
+                console.log('confirmStudent调用, tempName:', tempName, 'selectedGrade:', selectedGrade?.id);
                 if (!tempName) return;
                 setCurrentStudent(tempName);
                 setCurrentScores({ r: [], d: [], e: [] });
@@ -405,26 +415,27 @@
                 setCurrentQuestionIndex(0);
                 setSelectedOption(null);
                 setCorrectOptionIndex(null);
-                prepareRound();
+                // prepareRound will be called by useEffect when screen changes
                 setScreen('game');
             };
             
             // 准备当前回合
             const prepareRound = () => {
-                console.log('prepareRound调用, currentRound:', currentRound, 'selectedGrade:', selectedGrade ? '有' : '无');
+                console.log('prepareRound执行, currentRound:', currentRound, 'selectedGrade.id:', selectedGrade?.id);
                 if (!selectedGrade) { console.log('selectedGrade为空'); return; }
                 
                 if (currentRound === 0) {
                     // 认一认
                     const imgs = selectedGrade.recognition?.images || [];
+                    console.log('认一认图片列表, 数量:', imgs.length, '图片:', imgs.map(i => ({id: i.id, url: i.url})));
                     if (imgs.length === 0) {
                         alert('请先在后台添加认一认图片');
                         return;
                     }
                     const randomIndex = Math.floor(Math.random() * imgs.length);
-                    setCurrentImages([imgs[randomIndex]]);
-                    setDiscriminationOptions([]);
-                    setCorrectOptionIndex(null);
+                    const img = imgs[randomIndex];
+                    console.log('随机选择图片, index:', randomIndex, 'img:', img);
+                    setCurrentImages([img]);
 
                 } else if (currentRound === 1) {
                     console.log('进入辨一辨逻辑块');
@@ -510,13 +521,13 @@
                     if (currentQuestionIndex < roundCount - 1) {
                         // 继续当前环节下一题
                         setCurrentQuestionIndex(currentQuestionIndex + 1);
-                        prepareRound();
+                        // prepareRound will be called by useEffect if needed
                     } else {
                         // 进入下一环节
                         setCurrentQuestionIndex(0);
                         if (currentRound < 2) {
                             setCurrentRound(currentRound + 1);
-                            prepareRound();
+                            // prepareRound will be called by useEffect when currentRound changes
                         } else {
                             finishGame(newScores);
                         }
@@ -547,13 +558,13 @@
                 if (currentQuestionIndex < roundCount - 1) {
                     // 继续当前环节下一题
                     setCurrentQuestionIndex(currentQuestionIndex + 1);
-                    prepareRound();
+                    // prepareRound will be called by useEffect if needed
                 } else {
                     // 进入下一环节
                     setCurrentQuestionIndex(0);
                     if (currentRound < 2) {
                         setCurrentRound(currentRound + 1);
-                        prepareRound();
+                        // prepareRound will be called by useEffect when currentRound changes
                     } else {
                         finishGame(newScores);
                     }
@@ -703,7 +714,13 @@
                                     {(currentRound === 0 || currentRound === 2) && (
                                         <div>
                                             <div className="image-display">
-                                                {currentImages[0] && <img src={currentImages[0]?.url} alt="题目" />}
+                                                {currentImages[0] ? (
+                                                    <img src={currentImages[0]?.url} alt="题目" onError={(e) => { e.target.style.display = 'none'; console.log('图片加载失败:', currentImages[0]?.url); }} />
+                                                ) : (
+                                                    <div style={{padding: '50px', textAlign: 'center', color: '#999'}}>
+                                                        loading... (URL: {currentImages[0]?.url})
+                                                    </div>
+                                                )}
                                             </div>
                                             <p className="text-center" style={{margin: '20px 0', fontSize: '18px'}}>
                                                 {currentRound === 0 ? '请说出这个物品的名称' : '请描述这张图片'}
