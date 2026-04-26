@@ -695,7 +695,10 @@
                         </div>
                         <div className="config-item">
                             <span>辨一辨小图</span>
-                            <span>{selectedGrade?.discrimination?.smallImages?.length || 0} 张</span>
+                            <span style={{color: (selectedGrade?.discrimination?.smallImages?.length || 0) < 3 ? '#dc3545' : '#28a745'}}>
+                                {selectedGrade?.discrimination?.smallImages?.length || 0} 张
+                                {(selectedGrade?.discrimination?.smallImages?.length || 0) < 3 && ' ⚠️ 至少需要3张'}
+                            </span>
                         </div>
                         <div className="config-item">
                             <span>说一说图片</span>
