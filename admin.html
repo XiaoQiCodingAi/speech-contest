@@ -421,6 +421,11 @@
                                                     <img src={img.url} alt={img.name} />
                                                     <div className="label">{img.name || '大图'}</div>
                                                     {img.correctSmallId && <div className="has-correct">✓</div>}
+                                                    <button 
+                                                        className="remove-btn" 
+                                                        style={{position: 'absolute', top: '2px', right: '2px', zIndex: 1}}
+                                                        onClick={(e) => { e.stopPropagation(); removeImage('bigImages', img.id); }}
+                                                    >×</button>
                                                 </div>
                                             ))}
                                         </div>
