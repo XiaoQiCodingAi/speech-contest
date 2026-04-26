@@ -411,7 +411,8 @@
             
             // 准备当前回合
             const prepareRound = () => {
-                if (!selectedGrade) return;
+                console.log('prepareRound调用, currentRound:', currentRound, 'selectedGrade:', selectedGrade ? '有' : '无');
+                if (!selectedGrade) { console.log('selectedGrade为空'); return; }
                 
                 if (currentRound === 0) {
                     // 认一认
@@ -426,6 +427,7 @@
                     setCorrectOptionIndex(null);
 
                 } else if (currentRound === 1) {
+                    console.log('进入辨一辨逻辑块');
                     // 辨一辨：使用标记的正确图片
                     const bigImgs = selectedGrade.discrimination?.bigImages || [];
                     const smallImgs = selectedGrade.discrimination?.smallImages || [];
@@ -434,6 +436,7 @@
                     const validBigImgs = bigImgs.filter(b => b.correctSmallId);
                     
                     if (validBigImgs.length === 0 || smallImgs.length < 3) {
+                        console.log('校验失败: validBigImgs=', validBigImgs.length, 'smallImgs=', smallImgs.length);
                         alert('请先在后台配置辨一辨：上传大图并标记正确答案');
                         return;
                     }
@@ -442,9 +445,15 @@
                     const questionIndex = Math.floor(Math.random() * validBigImgs.length);
                     const questionImg = validBigImgs[questionIndex];
                     setCurrentImages([questionImg]);
+                    console.log('辨一辨调试:', {
+                        questionImg,
+                        correctSmallId: questionImg.correctSmallId,
+                        smallImgsIds: smallImgs.map(s => ({id: s.id, url: s.url?.slice(0,50)}))
+                    });
                     
                     // 找到该大图对应的正确答案小图
                     const correctSmallImg = smallImgs.find(s => s.id === questionImg.correctSmallId);
+                    console.log('correctSmallImg查找结果:', correctSmallImg, '查找id:', questionImg.correctSmallId);
                     if (!correctSmallImg) {
                         alert('正确答案图片未找到，请重新标记');
                         return;
@@ -462,6 +471,7 @@
                     
                     // 找出正确答案打乱后的位置
                     const newCorrectIndex = shuffledOptions.findIndex(opt => opt.id === correctSmallImg.id);
+                    console.log('设置选项:', { shuffledOptions, newCorrectIndex });
                     setDiscriminationOptions(shuffledOptions);
                     setCorrectOptionIndex(newCorrectIndex);
                     
@@ -717,7 +727,15 @@
                                                 {currentImages[0] && <img src={currentImages[0]?.url} alt="题目" />}
                                             </div>
                                             <div className="options-container">
-                                                {discriminationOptions.map((option, index) => (
+                                                {discriminationOptions.length === 0 ? (
+                                                    <div style={{textAlign: 'center', color: '#999', padding: '20px'}}>
+                                                        加载中...
+                                                        <br/>
+                                                        <small>大图{selectedGrade?.discrimination?.bigImages?.length}张 / 小图{selectedGrade?.discrimination?.smallImages?.length}张 / 已标记{selectedGrade?.discrimination?.bigImages?.filter(b => b.correctSmallId).length}张</small>
+                                                        <br/>
+                                                        <small style={{color: 'red'}}>discriminationOptions为空！请按F12打开控制台查看日志</small>
+                                                    </div>
+                                                ) : discriminationOptions.map((option, index) => (
                                                     <div 
                                                         key={index}
                                                         className={`option-item ${
