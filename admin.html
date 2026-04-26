@@ -339,12 +339,16 @@
                                 <div className="form-group">
                                     <label className="form-label">题目数量</label>
                                     <input 
-                                        type="number" 
+                                        type="text" 
                                         className="form-input"
                                         value={selectedGrade?.recognition?.count || 3}
-                                        min="1"
-                                        max="20"
-                                        onChange={(e) => updateGrade('recognition', { ...selectedGrade.recognition, count: parseInt(e.target.value) })}
+                                        onFocus={(e) => e.target.select()}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (!isNaN(val) && val >= 1 && val <= 20) {
+                                                updateGrade('recognition', { ...selectedGrade.recognition, count: val });
+                                            }
+                                        }}
                                     />
                                 </div>
                                 <div className="upload-area" onClick={() => document.getElementById('recognition-upload').click()}>
@@ -371,12 +375,16 @@
                                 <div className="form-group">
                                     <label className="form-label">题目数量</label>
                                     <input 
-                                        type="number" 
+                                        type="text" 
                                         className="form-input"
                                         value={selectedGrade?.discrimination?.count || 3}
-                                        min="1"
-                                        max="20"
-                                        onChange={(e) => updateGrade('discrimination', { ...selectedGrade.discrimination, count: parseInt(e.target.value) })}
+                                        onFocus={(e) => e.target.select()}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (!isNaN(val) && val >= 1 && val <= 20) {
+                                                updateGrade('discrimination', { ...selectedGrade.discrimination, count: val });
+                                            }
+                                        }}
                                     />
                                 </div>
                                 
@@ -491,12 +499,16 @@
                                 <div className="form-group">
                                     <label className="form-label">题目数量</label>
                                     <input 
-                                        type="number" 
+                                        type="text" 
                                         className="form-input"
                                         value={selectedGrade?.expression?.count || 3}
-                                        min="1"
-                                        max="20"
-                                        onChange={(e) => updateGrade('expression', { ...selectedGrade.expression, count: parseInt(e.target.value) })}
+                                        onFocus={(e) => e.target.select()}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (!isNaN(val) && val >= 1 && val <= 20) {
+                                                updateGrade('expression', { ...selectedGrade.expression, count: val });
+                                            }
+                                        }}
                                     />
                                 </div>
                                 <div className="upload-area" onClick={() => document.getElementById('expression-upload').click()}>
