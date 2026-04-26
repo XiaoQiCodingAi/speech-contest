@@ -205,6 +205,7 @@
             const [selectedGrade, setSelectedGrade] = useState(null);
             const [currentTab, setCurrentTab] = useState('basic');
             const [selectedBigImage, setSelectedBigImage] = useState(null);
+            const [uploading, setUploading] = useState(false);
             
             useEffect(() => {
                 // 使用 IndexedDB 加载数据
@@ -254,6 +255,7 @@
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
 
+                setUploading(true);
                 // 上传到服务器API
                 Promise.all(files.map(file => {
                     const formData = new FormData();
@@ -270,6 +272,7 @@
                         };
                     });
                 })).then((newImages) => {
+                    setUploading(false);
                     if (field === 'recognition' || field === 'expression') {
                         const currentImages = selectedGrade[field]?.images || [];
                         updateGrade(field, { ...selectedGrade[field], images: [...currentImages, ...newImages] });
@@ -282,6 +285,7 @@
                         updateGrade('discrimination', { ...selectedGrade.discrimination, smallImages: [...currentImages, ...newImages] });
                     }
                 }).catch(err => {
+                    setUploading(false);
                     alert('上传失败: ' + err.message);
                 });
             };
@@ -461,6 +465,11 @@
                                     <p style={{fontSize: '12px', color: '#999'}}>支持 jpg、png、gif 等格式</p>
                                 </div>
                                 <input id="recognition-upload" type="file" accept="image/*" multiple style={{display: 'none'}} onChange={(e) => handleImageUpload(e, 'recognition')} />
+                                {uploading && (
+                                    <div style={{textAlign: 'center', padding: '15px', color: '#ff6b6b', fontWeight: 'bold', background: '#fff0f0', borderRadius: '10px', marginBottom: '15px'}}>
+                                        ⏰ 上传中，请稍候...
+                                    </div>
+                                )}
                                 <div className="image-grid">
                                     {(selectedGrade?.recognition?.images || []).map(img => (
                                         <div key={img.id} className="image-item">
@@ -502,6 +511,11 @@
                                             <p>上传大图</p>
                                         </div>
                                         <input id="big-upload" type="file" accept="image/*" multiple style={{display: 'none'}} onChange={(e) => handleImageUpload(e, 'bigImages')} />
+                                        {uploading && (
+                                            <div style={{textAlign: 'center', padding: '15px', color: '#ff6b6b', fontWeight: 'bold', background: '#fff0f0', borderRadius: '10px', marginBottom: '10px'}}>
+                                                ⏰ 上传中，请稍候...
+                                            </div>
+                                        )}
                                         <div className="image-grid">
                                             {(selectedGrade?.discrimination?.bigImages || []).map(img => (
                                                 <div 
@@ -530,6 +544,11 @@
                                             <p>上传小图</p>
                                         </div>
                                         <input id="small-upload" type="file" accept="image/*" multiple style={{display: 'none'}} onChange={(e) => handleImageUpload(e, 'smallImages')} />
+                                        {uploading && (
+                                            <div style={{textAlign: 'center', padding: '15px', color: '#ff6b6b', fontWeight: 'bold', background: '#fff0f0', borderRadius: '10px', marginBottom: '10px'}}>
+                                                ⏰ 上传中，请稍候...
+                                            </div>
+                                        )}
                                         <div className="image-grid">
                                             {(selectedGrade?.discrimination?.smallImages || []).map(img => {
                                                 const isCorrectFor = selectedBigImage?.correctSmallId === img.id;
@@ -630,6 +649,11 @@
                                     <p style={{fontSize: '12px', color: '#999'}}>支持 jpg、png、gif 等格式</p>
                                 </div>
                                 <input id="expression-upload" type="file" accept="image/*" multiple style={{display: 'none'}} onChange={(e) => handleImageUpload(e, 'expression')} />
+                                {uploading && (
+                                    <div style={{textAlign: 'center', padding: '15px', color: '#ff6b6b', fontWeight: 'bold', background: '#fff0f0', borderRadius: '10px', marginBottom: '15px'}}>
+                                        ⏰ 上传中，请稍候...
+                                    </div>
+                                )}
                                 <div className="image-grid">
                                     {(selectedGrade?.expression?.images || []).map(img => (
                                         <div key={img.id} className="image-item">
