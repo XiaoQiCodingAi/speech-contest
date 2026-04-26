@@ -182,19 +182,34 @@
             
             const handleImageUpload = (e, field) => {
                 const files = Array.from(e.target.files);
-                const newImages = files.map(file => ({
-                    id: Date.now() + Math.random(),
-                    url: URL.createObjectURL(file),
-                    name: file.name
-                }));
-                if (field === 'recognition' || field === 'expression') {
-                    const currentImages = selectedGrade[field]?.images || [];
-                    updateGrade(field, { ...selectedGrade[field], images: [...currentImages, ...newImages] });
-                } else if (field === 'bigImages') {
-                    const currentImages = selectedGrade.discrimination?.bigImages || [];
-                    // 新上传的大图默认correctSmallId为null
-                    const newWithCorrect = newImages.map(img => ({ ...img, correctSmallId: null }));
-                    updateGrade('discrimination', { ...selectedGrade.discrimination, bigImages: [...currentImages, ...newWithCorrect] });
+                
+                // 使用Promise.all等待所有文件读取为base64
+                Promise.all(files.map(file => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            resolve({
+                                id: Date.now() + Math.random(),
+                                url: e.target.result, // base64 data URL
+                                name: file.name
+                            });
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                })).then((newImages) => {
+                    if (field === 'recognition' || field === 'expression') {
+                        const currentImages = selectedGrade[field]?.images || [];
+                        updateGrade(field, { ...selectedGrade[field], images: [...currentImages, ...newImages] });
+                    } else if (field === 'bigImages') {
+                        const currentImages = selectedGrade.discrimination?.bigImages || [];
+                        const newWithCorrect = newImages.map(img => ({ ...img, correctSmallId: null }));
+                        updateGrade('discrimination', { ...selectedGrade.discrimination, bigImages: [...currentImages, ...newWithCorrect] });
+                    } else if (field === 'smallImages') {
+                        const currentImages = selectedGrade.discrimination?.smallImages || [];
+                        updateGrade('discrimination', { ...selectedGrade.discrimination, smallImages: [...currentImages, ...newImages] });
+                    }
+                });
+            };
                 } else if (field === 'smallImages') {
                     const currentImages = selectedGrade.discrimination?.smallImages || [];
                     updateGrade('discrimination', { ...selectedGrade.discrimination, smallImages: [...currentImages, ...newImages] });
