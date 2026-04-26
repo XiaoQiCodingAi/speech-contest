@@ -214,11 +214,6 @@
                     }
                 });
             };
-                } else if (field === 'smallImages') {
-                    const currentImages = selectedGrade.discrimination?.smallImages || [];
-                    updateGrade('discrimination', { ...selectedGrade.discrimination, smallImages: [...currentImages, ...newImages] });
-                }
-            };
             
             const removeImage = (field, imageId) => {
                 if (field === 'recognition' || field === 'expression') {
