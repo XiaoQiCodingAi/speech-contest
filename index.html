@@ -7,7 +7,71 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="db.js"></script>
+    <script>
+// IndexedDB 存储层
+(function() {
+    const DB_NAME = 'speech_contest_db';
+    const DB_VERSION = 1;
+    const STORE_GRADES = 'grades';
+    const STORE_RESULTS = 'results';
+    let dbInstance = null;
+
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            if (dbInstance) { resolve(dbInstance); return; }
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => { dbInstance = request.result; resolve(dbInstance); };
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(STORE_GRADES)) db.createObjectStore(STORE_GRADES, { keyPath: 'id' });
+                if (!db.objectStoreNames.contains(STORE_RESULTS)) db.createObjectStore(STORE_RESULTS, { keyPath: 'id', autoIncrement: true });
+            };
+        });
+    }
+
+    function dbPut(storeName, data) {
+        return new Promise((resolve, reject) => {
+            openDB().then(db => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const request = store.put(data);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            }).catch(reject);
+        });
+    }
+
+    function dbGet(storeName, key) {
+        return new Promise((resolve, reject) => {
+            openDB().then(db => {
+                const tx = db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const request = store.get(key);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            }).catch(reject);
+        });
+    }
+
+    window.SpeechContestDB = {
+        saveGrades: (grades) => dbPut(STORE_GRADES, { id: 'all', data: grades }),
+        loadGrades: () => new Promise(resolve => { dbGet(STORE_GRADES, 'all').then(r => resolve(r ? r.data : null)).catch(() => resolve(null)); }),
+        saveResults: (results) => dbPut(STORE_RESULTS, { id: 'all', data: results }),
+        loadResults: () => new Promise(resolve => { dbGet(STORE_RESULTS, 'all').then(r => resolve(r ? r.data : [])).catch(() => resolve([])); }),
+        clearAllData: () => new Promise((resolve, reject) => {
+            openDB().then(db => {
+                const tx = db.transaction([STORE_GRADES, STORE_RESULTS], 'readwrite');
+                tx.objectStore(STORE_GRADES).clear();
+                tx.objectStore(STORE_RESULTS).clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }),
+        openDB
+    };
+})();
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #6ecbf5, #c2e9fb); min-height: 100vh; }
