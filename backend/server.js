@@ -8,7 +8,7 @@ const app = express();
 const PORT = 3002;
 
 // 创建上传目录
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
+const UPLOAD_DIR = '/usr/share/nginx/html/speech-contest/uploads';
 if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }

@@ -668,7 +668,7 @@
                                     {(currentRound === 0 || currentRound === 2) && (
                                         <div>
                                             <div className="image-display">
-                                                {currentImages[0] && <img src={currentImages[0]} alt="题目" />}
+                                                {currentImages[0] && <img src={currentImages[0]?.url} alt="题目" />}
                                             </div>
                                             <p className="text-center" style={{margin: '20px 0', fontSize: '18px'}}>
                                                 {currentRound === 0 ? '请说出这个物品的名称' : '请描述这张图片'}
@@ -689,7 +689,7 @@
                                                 找出与上面相同的类型
                                             </p>
                                             <div className="image-display" style={{width: '250px', height: '250px'}}>
-                                                {currentImages[0] && <img src={currentImages[0]} alt="题目" />}
+                                                {currentImages[0] && <img src={currentImages[0]?.url} alt="题目" />}
                                             </div>
                                             <div className="options-container">
                                                 {discriminationOptions.map((option, index) => (
@@ -697,11 +697,11 @@
                                                         key={index}
                                                         className={`option-item ${
                                                             selectedOption === index ? 
-                                                                (option === currentImages[0] ? 'correct' : 'wrong') : ''
+                                                                (option.id === currentImages[0]?.id ? 'correct' : 'wrong') : ''
                                                         }`}
                                                         onClick={() => handleOptionSelect(option, index)}
                                                     >
-                                                        <img src={option} alt={`选项${index + 1}`} />
+                                                        <img src={option?.url} alt={`选项${index + 1}`} />
                                                     </div>
                                                 ))}
                                             </div>
