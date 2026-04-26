@@ -338,6 +338,7 @@
             const [discriminationOptions, setDiscriminationOptions] = useState([]);
             const [correctOptionIndex, setCorrectOptionIndex] = useState(null); // 辨一辨正确答案索引
             const [selectedOption, setSelectedOption] = useState(null);
+            const [isTransitioning, setIsTransitioning] = useState(false);
             
             const rollInterval = useRef(null);
             
@@ -415,6 +416,7 @@
                 setCurrentQuestionIndex(0);
                 setSelectedOption(null);
                 setCorrectOptionIndex(null);
+                setIsTransitioning(false);
                 // prepareRound will be called by useEffect when screen changes
                 setScreen('game');
             };
@@ -503,7 +505,8 @@
             
             // 辨一辨选择选项
             const handleOptionSelect = (option, index) => {
-                if (selectedOption !== null) return; // 已选择
+                if (selectedOption !== null || isTransitioning) return; // 已选择或过渡中
+                setIsTransitioning(true);
                 
                 setSelectedOption(index);
                 const isCorrect = index === correctOptionIndex;
@@ -533,6 +536,8 @@
                         }
                     }
                 }, 2000);
+                // 2.5秒后解除过渡状态（比反馈时间长一点）
+                setTimeout(() => setIsTransitioning(false), 2500);
             };
             
             // 显示反馈
@@ -549,6 +554,8 @@
             
             // 认一认/说一说评分
             const handleScore = (score) => {
+                if (isTransitioning) return;
+                setIsTransitioning(true);
                 const key = currentRound === 0 ? 'r' : 'e';
                 const roundCount = selectedGrade?.[key === 'r' ? 'recognition' : 'expression']?.count || 3;
                 const newScores = { ...currentScores, [key]: [...(currentScores[key] || []), score] };
@@ -569,6 +576,8 @@
                         finishGame(newScores);
                     }
                 }
+                // 1秒后解除过渡状态，防止连续点击
+                setTimeout(() => setIsTransitioning(false), 1000);
             };
             
             // 完成游戏
