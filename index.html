@@ -327,7 +327,11 @@
             const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0); // 当前题目在当前环节中的索引
             const [students, setStudents] = useState([]);
             const [currentStudent, setCurrentStudent] = useState(null);
-            const [currentScores, setCurrentScores] = useState({ r: [], d: [], e: [] }); // 改为数组，存储每题分数
+            const [currentScores, setCurrentScores] = useState({ r: [], d: [], e: [] });
+            // 每题详情: [{imageId, imageUrl, score}]
+            const [questionDetails, setQuestionDetails] = useState([]);
+            // 当前比赛已使用图片ID（防重复）
+            const [usedImageIds, setUsedImageIds] = useState({ r: [], d: [], e: [] });
             const [results, setResults] = useState([]);
             const [feedback, setFeedback] = useState({ show: false, correct: null, message: '' });
             const [tempName, setTempName] = useState(''); // 临时点名
@@ -339,7 +343,7 @@
             const [correctOptionIndex, setCorrectOptionIndex] = useState(null); // 辨一辨正确答案索引
             const [selectedOption, setSelectedOption] = useState(null);
             const [isTransitioning, setIsTransitioning] = useState(false);
-            
+
             const rollInterval = useRef(null);
             
             // 监听screen和currentRound和currentQuestionIndex变化，自动准备回合
@@ -412,6 +416,8 @@
                 if (!tempName) return;
                 setCurrentStudent(tempName);
                 setCurrentScores({ r: [], d: [], e: [] });
+                setQuestionDetails([]);
+                setUsedImageIds({ r: [], d: [], e: [] });
                 setCurrentRound(0);
                 setCurrentQuestionIndex(0);
                 setSelectedOption(null);
@@ -434,13 +440,21 @@
                         alert('请先在后台添加认一认图片');
                         return;
                     }
-                    const randomIndex = Math.floor(Math.random() * imgs.length);
-                    const img = imgs[randomIndex];
+                    // 过滤掉已使用图片
+                    const availableImgs = imgs.filter(img => !usedImageIds.r.includes(img.id));
+                    if (availableImgs.length === 0) {
+                        alert('认一认图片已全部使用完毕！');
+                        return;
+                    }
+                    const randomIndex = Math.floor(Math.random() * availableImgs.length);
+                    const img = availableImgs[randomIndex];
                     console.log('随机选择图片, index:', randomIndex, 'img:', img);
                     setCurrentImages([img]);
-                    
-                    // 预加载当前环节剩余图片
-                    const remainingImgs = imgs.filter((_, i) => i !== randomIndex);
+                    // 标记该图片为已使用
+                    setUsedImageIds(prev => ({ ...prev, r: [...prev.r, img.id] }));
+
+                    // 预加载当前环节剩余图片（排除已使用的）
+                    const remainingImgs = availableImgs.filter((_, i) => i !== randomIndex);
                     preloadImages(remainingImgs);
 
                 } else if (currentRound === 1) {
@@ -449,8 +463,8 @@
                     const bigImgs = selectedGrade.discrimination?.bigImages || [];
                     const smallImgs = selectedGrade.discrimination?.smallImages || [];
                     
-                    // 只使用已标记正确答案的大图
-                    const validBigImgs = bigImgs.filter(b => b.correctSmallId);
+                    // 只使用已标记正确答案的大图，且未使用过
+                    const validBigImgs = bigImgs.filter(b => b.correctSmallId && !usedImageIds.d.includes(b.id));
                     
                     if (validBigImgs.length === 0 || smallImgs.length < 3) {
                         console.log('校验失败: validBigImgs=', validBigImgs.length, 'smallImgs=', smallImgs.length);
@@ -462,6 +476,8 @@
                     const questionIndex = Math.floor(Math.random() * validBigImgs.length);
                     const questionImg = validBigImgs[questionIndex];
                     setCurrentImages([questionImg]);
+                    // 标记该大图为已使用
+                    setUsedImageIds(prev => ({ ...prev, d: [...prev.d, questionImg.id] }));
                     console.log('辨一辨调试:', {
                         questionImg,
                         correctSmallId: questionImg.correctSmallId,
@@ -504,14 +520,22 @@
                         alert('请先在后台添加说一说图片');
                         return;
                     }
-                    const randomIndex = Math.floor(Math.random() * imgs.length);
-                    const img = imgs[randomIndex];
+                    // 过滤掉已使用图片
+                    const availableImgs = imgs.filter(img => !usedImageIds.e.includes(img.id));
+                    if (availableImgs.length === 0) {
+                        alert('说一说图片已全部使用完毕！');
+                        return;
+                    }
+                    const randomIndex = Math.floor(Math.random() * availableImgs.length);
+                    const img = availableImgs[randomIndex];
                     setCurrentImages([img]);
+                    // 标记该图片为已使用
+                    setUsedImageIds(prev => ({ ...prev, e: [...prev.e, img.id] }));
                     setDiscriminationOptions([]);
                     setCorrectOptionIndex(null);
-                    
-                    // 预加载当前环节剩余图片
-                    const remainingImgs = imgs.filter((_, i) => i !== randomIndex);
+
+                    // 预加载当前环节剩余图片（排除已使用的）
+                    const remainingImgs = availableImgs.filter((_, i) => i !== randomIndex);
                     preloadImages(remainingImgs);
                 }
                 setSelectedOption(null);
@@ -529,13 +553,23 @@
             const handleOptionSelect = (option, index) => {
                 if (selectedOption !== null || isTransitioning) return; // 已选择或过渡中
                 setIsTransitioning(true);
-                
+
                 setSelectedOption(index);
                 const isCorrect = index === correctOptionIndex;
-                
-                const newScores = { ...currentScores, d: [...(currentScores.d || []), isCorrect ? 3 : 0] };
+                const score = isCorrect ? 3 : 0;
+
+                const newScores = { ...currentScores, d: [...(currentScores.d || []), score] };
                 setCurrentScores(newScores);
-                
+
+                // 记录本题详情（图片ID、URL、得分）
+                const detail = {
+                    round: 'd',
+                    imageId: currentImages[0]?.id,
+                    imageUrl: currentImages[0]?.url,
+                    score
+                };
+                setQuestionDetails(prev => [...prev, detail]);
+
                 // 显示反馈
                 showFeedback(isCorrect);
                 
@@ -582,7 +616,16 @@
                 const roundCount = selectedGrade?.[key === 'r' ? 'recognition' : 'expression']?.count || 3;
                 const newScores = { ...currentScores, [key]: [...(currentScores[key] || []), score] };
                 setCurrentScores(newScores);
-                
+
+                // 记录本题详情（图片ID、URL、得分）
+                const detail = {
+                    round: key,
+                    imageId: currentImages[0]?.id,
+                    imageUrl: currentImages[0]?.url,
+                    score
+                };
+                setQuestionDetails(prev => [...prev, detail]);
+
                 // 检查是否完成当前环节所有题目
                 if (currentQuestionIndex < roundCount - 1) {
                     // 继续当前环节下一题
@@ -612,7 +655,9 @@
                     student: currentStudent,
                     scores: { r: rTotal, d: dTotal, e: eTotal },
                     total: total,
-                    date: new Date().toLocaleDateString()
+                    date: new Date().toLocaleDateString(),
+                    // 每题详细得分（用于结果详情页展示）
+                    details: questionDetails
                 };
                 const newResults = [...results, newResult];
                 saveResults(newResults);
@@ -624,6 +669,8 @@
                 setCurrentStudent(null);
                 setTempName('');
                 setCurrentScores({ r: [], d: [], e: [] });
+                setQuestionDetails([]);
+                setUsedImageIds({ r: [], d: [], e: [] });
                 setCurrentRound(0);
                 setCurrentQuestionIndex(0);
                 setScreen('random');
@@ -634,6 +681,9 @@
                 setScreen('home');
                 setSelectedGrade(null);
                 setCurrentStudent(null);
+                setCurrentScores({ r: [], d: [], e: [] });
+                setQuestionDetails([]);
+                setUsedImageIds({ r: [], d: [], e: [] });
             };
             
             // 清空统计
@@ -804,6 +854,15 @@
                     
                     case 'result':
                         const total = (currentScores.r || 0) + (currentScores.d || 0) + (currentScores.e || 0);
+                        // 按环节分组
+                        const rDetails = questionDetails.filter(d => d.round === 'r');
+                        const dDetails = questionDetails.filter(d => d.round === 'd');
+                        const eDetails = questionDetails.filter(d => d.round === 'e');
+                        const roundName = { r: '认一认', d: '辨一辨', e: '说一说' };
+                        // 按得分分组（只展示 2/1/0 分的题目，辨一辨3分归为满分不单独展示）
+                        const score2Details = questionDetails.filter(d => d.score === 2);
+                        const score1Details = questionDetails.filter(d => d.score === 1);
+                        const score0Details = questionDetails.filter(d => d.score === 0);
                         return (
                             <div className="container">
                                 <h1 className="page-title">答题完成</h1>
@@ -812,7 +871,7 @@
                                         <p style={{fontSize: '24px', marginBottom: '10px'}}>👤 {currentStudent}</p>
                                         <p style={{fontSize: '18px', color: '#666'}}>答题结果</p>
                                     </div>
-                                    
+
                                     <div className="result-breakdown">
                                         <div className="result-item">
                                             <div className="label">认一认</div>
@@ -827,12 +886,75 @@
                                             <div className="score">{currentScores.e ?? 0}分</div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="result-total">
                                         总分：{total} / 9 分
                                     </div>
-                                    
-                                    <div className="text-center">
+
+                                    {/* 每题详细得分 */}
+                                    <div style={{marginTop: '30px', borderTop: '2px solid #eee', paddingTop: '20px'}}>
+                                        <h3 style={{textAlign: 'center', color: '#333', marginBottom: '15px'}}>📋 题目详情</h3>
+
+                                        {/* 得2分题目 */}
+                                        {score2Details.length > 0 && (
+                                            <div style={{marginBottom: '15px'}}>
+                                                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+                                                    <span style={{background: '#ffc107', color: 'white', padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold'}}>2分</span>
+                                                    <span style={{color: '#666', fontSize: '13px'}}>{score2Details.length}题</span>
+                                                </div>
+                                                <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                                                    {score2Details.map((detail, i) => (
+                                                        <div key={i} style={{position: 'relative', width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '2px solid #ffc107'}}>
+                                                            <img src={detail.imageUrl} alt="题目" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                                                            <div style={{position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', textAlign: 'center', padding: '1px'}}>{roundName[detail.round]}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 得1分题目 */}
+                                        {score1Details.length > 0 && (
+                                            <div style={{marginBottom: '15px'}}>
+                                                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+                                                    <span style={{background: '#fd7e14', color: 'white', padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold'}}>1分</span>
+                                                    <span style={{color: '#666', fontSize: '13px'}}>{score1Details.length}题</span>
+                                                </div>
+                                                <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                                                    {score1Details.map((detail, i) => (
+                                                        <div key={i} style={{position: 'relative', width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '2px solid #fd7e14'}}>
+                                                            <img src={detail.imageUrl} alt="题目" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                                                            <div style={{position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', textAlign: 'center', padding: '1px'}}>{roundName[detail.round]}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 得0分题目 */}
+                                        {score0Details.length > 0 && (
+                                            <div style={{marginBottom: '15px'}}>
+                                                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+                                                    <span style={{background: '#6c757d', color: 'white', padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold'}}>0分</span>
+                                                    <span style={{color: '#666', fontSize: '13px'}}>{score0Details.length}题</span>
+                                                </div>
+                                                <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                                                    {score0Details.map((detail, i) => (
+                                                        <div key={i} style={{position: 'relative', width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '2px solid #6c757d'}}>
+                                                            <img src={detail.imageUrl} alt="题目" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                                                            <div style={{position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', textAlign: 'center', padding: '1px'}}>{roundName[detail.round]}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {questionDetails.length === 0 && (
+                                            <div style={{textAlign: 'center', color: '#999'}}>暂无详细数据</div>
+                                        )}
+                                    </div>
+
+                                    <div className="text-center" style={{marginTop: '20px'}}>
                                         <button className="btn btn-success btn-large" onClick={nextStudent}>
                                             下一位学生
                                         </button>

@@ -250,6 +250,36 @@
                 const newStudents = (selectedGrade.students || []).filter(s => s.id !== id);
                 updateGrade('students', newStudents);
             };
+
+            // 批量上传学生姓名（CSV/TXT，每行一个姓名）
+            const handleBulkStudentUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const text = event.target.result;
+                    const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
+                    if (lines.length === 0) {
+                        alert('文件为空或格式不正确');
+                        return;
+                    }
+                    const newStudents = lines.map(name => ({
+                        id: Date.now().toString() + Math.random(),
+                        name: name
+                    }));
+                    const existingNames = new Set((selectedGrade.students || []).map(s => s.name));
+                    const uniqueNewStudents = newStudents.filter(s => !existingNames.has(s.name));
+                    if (uniqueNewStudents.length === 0) {
+                        alert('所有姓名已存在，未添加任何学生');
+                        return;
+                    }
+                    updateGrade('students', [...(selectedGrade.students || []), ...uniqueNewStudents]);
+                    alert(`成功添加 ${uniqueNewStudents.length} 名学生`);
+                };
+                reader.readAsText(file);
+                // 清空input，允许重复上传同一文件
+                e.target.value = '';
+            };
             
             const handleImageUpload = (e, field) => {
                 const files = Array.from(e.target.files);
@@ -670,9 +700,21 @@
                         
                         {currentTab === 'students' && (
                             <div>
+                                {/* 批量上传区域 */}
+                                <div style={{background: '#f0f9ff', border: '2px dashed #6ecbf5', borderRadius: '10px', padding: '15px', marginBottom: '20px', textAlign: 'center'}}>
+                                    <div style={{fontWeight: 'bold', color: '#333', marginBottom: '8px'}}>📥 批量导入学生</div>
+                                    <div style={{fontSize: '13px', color: '#666', marginBottom: '10px'}}>支持 CSV 或 TXT 格式，每行一个姓名</div>
+                                    <label className="btn btn-secondary" style={{cursor: 'pointer', display: 'inline-block'}}>
+                                        选择文件导入
+                                        <input type="file" accept=".csv,.txt" style={{display: 'none'}} onChange={handleBulkStudentUpload} />
+                                    </label>
+                                </div>
+
+                                <div style={{textAlign: 'center', color: '#999', marginBottom: '15px', fontSize: '13px'}}>— 或手动逐个添加 —</div>
+
                                 <div className="form-group" style={{display: 'flex', gap: '10px'}}>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         className="form-input"
                                         placeholder="输入学生姓名，按回车添加"
                                         onKeyPress={(e) => {
@@ -688,6 +730,9 @@
                                         input.value = '';
                                     }}>添加</button>
                                 </div>
+                                <div style={{fontSize: '13px', color: '#666', marginBottom: '15px'}}>
+                                    已添加 <b style={{color: '#ff6b6b'}}>{selectedGrade?.students?.length || 0}</b> 名学生
+                                </div>
                                 <div className="student-list">
                                     {(selectedGrade?.students || []).map(student => (
                                         <div key={student.id} className="student-tag">
@@ -697,7 +742,7 @@
                                     ))}
                                 </div>
                                 {(!selectedGrade?.students || selectedGrade.students.length === 0) && (
-                                    <div className="empty-state mt-20">暂无学生，请添加</div>
+                                    <div className="empty-state mt-20">暂无学生，请通过上方批量导入或手动添加</div>
                                 )}
                             </div>
                         )}
