@@ -305,17 +305,17 @@
                 id: '1',
                 name: '中低年段',
                 subtitle: '好吃的水果',
-                recognition: { images: [], count: 3 },
-                discrimination: { groups: [], count: 3 },
-                expression: { images: [], count: 3 }
+                recognition: { images: [], count: 3, scoreConfig: null, scoreLevels: [3,2,1,0] },
+                discrimination: { groups: [], count: 3, scoreConfig: null, scoreLevels: [3,0] },
+                expression: { images: [], count: 3, scoreConfig: null, scoreLevels: [3,2,1,0] }
             },
             {
                 id: '2',
                 name: '高年段',
                 subtitle: '我们的住房',
-                recognition: { images: [], count: 3 },
-                discrimination: { groups: [], count: 3 },
-                expression: { images: [], count: 3 }
+                recognition: { images: [], count: 3, scoreConfig: null, scoreLevels: [3,2,1,0] },
+                discrimination: { groups: [], count: 3, scoreConfig: null, scoreLevels: [3,0] },
+                expression: { images: [], count: 3, scoreConfig: null, scoreLevels: [3,2,1,0] }
             }
         ];
         
@@ -655,6 +655,11 @@
                     student: currentStudent,
                     scores: { r: rTotal, d: dTotal, e: eTotal },
                     total: total,
+                    maxScore: (
+                        (selectedGrade?.recognition?.scoreLevels?.[0] || 3) * (selectedGrade?.recognition?.count || 3) +
+                        (selectedGrade?.discrimination?.scoreLevels?.[0] || 3) * (selectedGrade?.discrimination?.count || 3) +
+                        (selectedGrade?.expression?.scoreLevels?.[0] || 3) * (selectedGrade?.expression?.count || 3)
+                    ),
                     date: new Date().toLocaleDateString(),
                     // 每题详细得分（用于结果详情页展示）
                     details: questionDetails
@@ -806,11 +811,15 @@
                                             <p className="text-center" style={{margin: '20px 0', fontSize: '18px'}}>
                                                 {currentRound === 0 ? '请说出这个物品的名称' : '请描述这张图片'}
                                             </p>
-                                            <div className="text-center">
-                                                <button className="btn score-btn score-3" onClick={() => handleScore(3)}>3分</button>
-                                                <button className="btn score-btn score-2" onClick={() => handleScore(2)}>2分</button>
-                                                <button className="btn score-btn score-1" onClick={() => handleScore(1)}>1分</button>
-                                                <button className="btn score-btn score-0" onClick={() => handleScore(0)}>0分</button>
+                                    <div className="text-center">
+                                                {(selectedGrade?.[currentRound === 0 ? 'recognition' : 'expression']?.scoreLevels || [3,2,1,0]).map((score, idx) => (
+                                                    <button 
+                                                        key={idx}
+                                                        className={`btn score-btn score-${score === 0 ? '0' : score >= 3 ? '3' : score === 2 ? '2' : '1'}`}
+                                                        style={{fontSize: score === (selectedGrade?.[currentRound === 0 ? 'recognition' : 'expression']?.scoreLevels?.[0] || 3) ? '22px' : '18px', padding: score === (selectedGrade?.[currentRound === 0 ? 'recognition' : 'expression']?.scoreLevels?.[0] || 3) ? '18px 30px' : '15px 25px'}}
+                                                        onClick={() => handleScore(score)}
+                                                    >{score}分</button>
+                                                ))}
                                             </div>
                                         </div>
                                     )}
@@ -888,7 +897,11 @@
                                     </div>
 
                                     <div className="result-total">
-                                        总分：{total} / 9 分
+                                        总分：{total} / {(
+                                            ((selectedGrade?.recognition?.scoreLevels?.[0] || 3) * (selectedGrade?.recognition?.count || 3)) +
+                                            ((selectedGrade?.discrimination?.scoreLevels?.[0] || 3) * (selectedGrade?.discrimination?.count || 3)) +
+                                            ((selectedGrade?.expression?.scoreLevels?.[0] || 3) * (selectedGrade?.expression?.count || 3))
+                                        )} 分
                                     </div>
 
                                     {/* 每题详细得分 */}
@@ -984,7 +997,7 @@
                                                         <div className="name">{result.student}</div>
                                                         <div style={{fontSize: '12px', color: '#999'}}>{result.date}</div>
                                                     </div>
-                                                    <div className="score">{result.total}分</div>
+                                                    <div className="score">{result.total}{(result.maxScore ? `/${result.maxScore}` : '')}分</div>
                                                 </div>
                                             ))}
                                         </div>

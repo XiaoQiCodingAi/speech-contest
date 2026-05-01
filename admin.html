@@ -164,6 +164,20 @@
         .config-preview h4 { color: #ff9800; margin-bottom: 10px; }
         .config-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; }
         
+        .score-config-section { background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 20px; }
+        .score-config-title { font-weight: bold; color: #333; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .score-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .score-preset-btn { padding: 6px 14px; border-radius: 15px; border: 2px solid #ddd; background: white; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .score-preset-btn:hover { border-color: #6ecbf5; }
+        .score-preset-btn.active { background: linear-gradient(45deg, #ff6b6b, #ffa500); color: white; border-color: #ff6b6b; }
+        .score-levels-display { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .score-level-chip { padding: 8px 15px; border-radius: 10px; font-weight: bold; font-size: 14px; color: white; }
+        .score-level-chip.score-high { background: linear-gradient(45deg, #28a745, #20c997); }
+        .score-level-chip.score-mid { background: linear-gradient(45deg, #ffc107, #ff9800); }
+        .score-level-chip.score-low { background: linear-gradient(45deg, #fd7e14, #ff6b6b); }
+        .score-level-chip.score-zero { background: linear-gradient(45deg, #6c757d, #adb5bd); }
+        .score-max-badge { background: #ff6b6b; color: white; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+        
         .empty-state { text-align: center; padding: 30px; color: #999; }
         .text-center { text-align: center; }
         .mt-10 { margin-top: 10px; }
@@ -185,18 +199,18 @@
                 name: '中低年段',
                 subtitle: '好吃的水果',
                 students: [],
-                recognition: { images: [], count: 3 },
-                discrimination: { bigImages: [], smallImages: [], count: 3 },
-                expression: { images: [], count: 3 }
+                recognition: { images: [], count: 3, scoreConfig: null, scoreLevels: [3,2,1,0] },
+                discrimination: { bigImages: [], smallImages: [], count: 3, scoreConfig: null, scoreLevels: [3,0] },
+                expression: { images: [], count: 3, scoreConfig: null, scoreLevels: [3,2,1,0] }
             },
             {
                 id: '2',
                 name: '高年段',
                 subtitle: '我们的住房',
                 students: [],
-                recognition: { images: [], count: 3 },
-                discrimination: { bigImages: [], smallImages: [], count: 3 },
-                expression: { images: [], count: 3 }
+                recognition: { images: [], count: 3, scoreConfig: null, scoreLevels: [3,2,1,0] },
+                discrimination: { bigImages: [], smallImages: [], count: 3, scoreConfig: null, scoreLevels: [3,0] },
+                expression: { images: [], count: 3, scoreConfig: null, scoreLevels: [3,2,1,0] }
             }
         ];
         
@@ -490,6 +504,51 @@
                                         }}
                                     />
                                 </div>
+                                {/* 认一认评分配置 */}
+                                <div className="score-config-section">
+                                    <div className="score-config-title">⭐ 认一认评分标准</div>
+                                    <div className="score-presets">
+                                        <button 
+                                            className={`score-preset-btn ${!selectedGrade?.recognition?.scoreConfig ? 'active' : ''}`}
+                                            onClick={() => updateGrade('recognition', { ...selectedGrade.recognition, scoreConfig: null })}
+                                        >标准3分</button>
+                                        <button 
+                                            className={`score-preset-btn ${selectedGrade?.recognition?.scoreConfig === '4/2/0' ? 'active' : ''}`}
+                                            onClick={() => updateGrade('recognition', { ...selectedGrade.recognition, scoreConfig: '4/2/0' })}
+                                        >4/2/0分</button>
+                                        <button 
+                                            className={`score-preset-btn ${selectedGrade?.recognition?.scoreConfig === '4/3/2/1' ? 'active' : ''}`}
+                                            onClick={() => updateGrade('recognition', { ...selectedGrade.recognition, scoreConfig: '4/3/2/1' })}
+                                        >4/3/2/1分</button>
+                                        <button 
+                                            className={`score-preset-btn ${selectedGrade?.recognition?.scoreConfig === 'custom' ? 'active' : ''}`}
+                                            onClick={() => updateGrade('recognition', { ...selectedGrade.recognition, scoreConfig: 'custom' })}
+                                        >自定义</button>
+                                    </div>
+                                    {selectedGrade?.recognition?.scoreConfig === 'custom' && (
+                                        <div>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="输入分值，用 / 分隔，例如 5/3/1"
+                                                value={selectedGrade?.recognition?.scoreLevels?.join('/') || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const levels = val.split('/').map(v => parseInt(v.trim())).filter(v => !isNaN(v) && v >= 0);
+                                                    if (levels.length >= 2) {
+                                                        updateGrade('recognition', { ...selectedGrade.recognition, scoreLevels: levels });
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="score-levels-display">
+                                        {(selectedGrade?.recognition?.scoreConfig === '4/3/2/1' ? [4,3,2,1] : selectedGrade?.recognition?.scoreConfig === '4/2/0' ? [4,2,0] : selectedGrade?.recognition?.scoreConfig === 'custom' ? (selectedGrade?.recognition?.scoreLevels || [3,2,1,0]) : [3,2,1,0]).map((score, i) => (
+                                            <span key={i} className={`score-level-chip ${score === 0 ? 'score-zero' : score >= 3 ? 'score-high' : score === 2 ? 'score-mid' : 'score-low'}`}>{score}分</span>
+                                        ))}
+                                        <span className="score-max-badge">满分 {selectedGrade?.recognition?.scoreConfig === '4/3/2/1' ? 4 : selectedGrade?.recognition?.scoreConfig === '4/2/0' ? 4 : selectedGrade?.recognition?.scoreConfig === 'custom' ? (selectedGrade?.recognition?.scoreLevels?.[0] || 3) : 3}</span>
+                                    </div>
+                                </div>
                                 <div className="upload-area" onClick={() => document.getElementById('recognition-upload').click()}>
                                     <p>点击上传图片（可多选）</p>
                                     <p style={{fontSize: '12px', color: '#999'}}>支持 jpg、png、gif 等格式</p>
@@ -674,6 +733,51 @@
                                         }}
                                     />
                                 </div>
+                                {/* 说一说评分配置 */}
+                                <div className="score-config-section">
+                                    <div className="score-config-title">⭐ 说一说评分标准</div>
+                                    <div className="score-presets">
+                                        <button 
+                                            className={`score-preset-btn ${!selectedGrade?.expression?.scoreConfig ? 'active' : ''}`}
+                                            onClick={() => updateGrade('expression', { ...selectedGrade.expression, scoreConfig: null })}
+                                        >标准3分</button>
+                                        <button 
+                                            className={`score-preset-btn ${selectedGrade?.expression?.scoreConfig === '4/2/0' ? 'active' : ''}`}
+                                            onClick={() => updateGrade('expression', { ...selectedGrade.expression, scoreConfig: '4/2/0' })}
+                                        >4/2/0分</button>
+                                        <button 
+                                            className={`score-preset-btn ${selectedGrade?.expression?.scoreConfig === '4/3/2/1' ? 'active' : ''}`}
+                                            onClick={() => updateGrade('expression', { ...selectedGrade.expression, scoreConfig: '4/3/2/1' })}
+                                        >4/3/2/1分</button>
+                                        <button 
+                                            className={`score-preset-btn ${selectedGrade?.expression?.scoreConfig === 'custom' ? 'active' : ''}`}
+                                            onClick={() => updateGrade('expression', { ...selectedGrade.expression, scoreConfig: 'custom' })}
+                                        >自定义</button>
+                                    </div>
+                                    {selectedGrade?.expression?.scoreConfig === 'custom' && (
+                                        <div>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="输入分值，用 / 分隔，例如 5/3/1"
+                                                value={selectedGrade?.expression?.scoreLevels?.join('/') || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const levels = val.split('/').map(v => parseInt(v.trim())).filter(v => !isNaN(v) && v >= 0);
+                                                    if (levels.length >= 2) {
+                                                        updateGrade('expression', { ...selectedGrade.expression, scoreLevels: levels });
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="score-levels-display">
+                                        {(selectedGrade?.expression?.scoreConfig === '4/3/2/1' ? [4,3,2,1] : selectedGrade?.expression?.scoreConfig === '4/2/0' ? [4,2,0] : selectedGrade?.expression?.scoreConfig === 'custom' ? (selectedGrade?.expression?.scoreLevels || [3,2,1,0]) : [3,2,1,0]).map((score, i) => (
+                                            <span key={i} className={`score-level-chip ${score === 0 ? 'score-zero' : score >= 3 ? 'score-high' : score === 2 ? 'score-mid' : 'score-low'}`}>{score}分</span>
+                                        ))}
+                                        <span className="score-max-badge">满分 {selectedGrade?.expression?.scoreConfig === '4/3/2/1' ? 4 : selectedGrade?.expression?.scoreConfig === '4/2/0' ? 4 : selectedGrade?.expression?.scoreConfig === 'custom' ? (selectedGrade?.expression?.scoreLevels?.[0] || 3) : 3}</span>
+                                    </div>
+                                </div>
                                 <div className="upload-area" onClick={() => document.getElementById('expression-upload').click()}>
                                     <p>点击上传图片（可多选）</p>
                                     <p style={{fontSize: '12px', color: '#999'}}>支持 jpg、png、gif 等格式</p>
@@ -776,6 +880,27 @@
                         <div className="config-item">
                             <span>学生人数</span>
                             <span>{selectedGrade?.students?.length || 0} 人</span>
+                        </div>
+                        <div className="config-item">
+                            <span>认一认满分</span>
+                            <span style={{color: '#ff6b6b', fontWeight: 'bold'}}>
+                                {selectedGrade?.recognition?.scoreConfig === '4/3/2/1' ? 4 : selectedGrade?.recognition?.scoreConfig === '4/2/0' ? 4 : selectedGrade?.recognition?.scoreConfig === 'custom' ? (selectedGrade?.recognition?.scoreLevels?.[0] || 3) : 3} 分
+                                {selectedGrade?.recognition?.scoreConfig && selectedGrade?.recognition?.scoreConfig !== 'custom' && ` (${selectedGrade.recognition.scoreConfig})`}
+                            </span>
+                        </div>
+                        <div className="config-item">
+                            <span>辨一辨满分</span>
+                            <span style={{color: '#ff6b6b', fontWeight: 'bold'}}>
+                                {selectedGrade?.discrimination?.scoreConfig === '4/3/2/1' ? 4 : selectedGrade?.discrimination?.scoreConfig === '4/2/0' ? 4 : selectedGrade?.discrimination?.scoreConfig === 'custom' ? (selectedGrade?.discrimination?.scoreLevels?.[0] || 3) : 3} 分
+                                {selectedGrade?.discrimination?.scoreConfig && selectedGrade?.discrimination?.scoreConfig !== 'custom' && ` (${selectedGrade.discrimination.scoreConfig})`}
+                            </span>
+                        </div>
+                        <div className="config-item">
+                            <span>说一说满分</span>
+                            <span style={{color: '#ff6b6b', fontWeight: 'bold'}}>
+                                {selectedGrade?.expression?.scoreConfig === '4/3/2/1' ? 4 : selectedGrade?.expression?.scoreConfig === '4/2/0' ? 4 : selectedGrade?.expression?.scoreConfig === 'custom' ? (selectedGrade?.expression?.scoreLevels?.[0] || 3) : 3} 分
+                                {selectedGrade?.expression?.scoreConfig && selectedGrade?.expression?.scoreConfig !== 'custom' && ` (${selectedGrade.expression.scoreConfig})`}
+                            </span>
                         </div>
                     </div>
                 </div>
